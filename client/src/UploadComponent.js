@@ -72,44 +72,44 @@ function UploadComponent() {
 
   const createJsonToComfy = (presignedUrl) => {
     // Modify this function to match your JSON structure
-    return {
-        "9": {
-          "inputs": {
-            "filename_prefix": "ComfyUI",
-            "images": [
-              "15",
-              0
-            ]
-          },
-          "class_type": "SaveImage",
-          "_meta": {
-            "title": "SAVE IT"
-          }
+    "prompt": {
+      "9": {
+        "inputs": {
+          "filename_prefix": "ComfyUI",
+          "images": [
+            "15",
+            0
+          ]
         },
-        "10": {
-          "inputs": {
-            "url": presignedUrl
-          },
-          "class_type": "LoadImageByUrl //Browser",
-          "_meta": {
-            "title": "USER IMAGE"
-          }
-        },
-        "15": {
-          "inputs": {
-            "blur_radius": 10,
-            "sigma": 1,
-            "image": [
-              "10",
-              0
-            ]
-          },
-          "class_type": "Blur",
-          "_meta": {
-            "title": "BLUR IT"
-          }
+        "class_type": "SaveImage",
+        "_meta": {
+          "title": "SAVE IT"
         }
-    };
+      },
+      "10": {
+        "inputs": {
+          "url": presignedUrl
+        },
+        "class_type": "LoadImageByUrl //Browser",
+        "_meta": {
+          "title": "USER IMAGE"
+        }
+      },
+      "15": {
+        "inputs": {
+          "blur_radius": 10,
+          "sigma": 1,
+          "image": [
+            "10",
+            0
+          ]
+        },
+        "class_type": "Blur",
+        "_meta": {
+          "title": "BLUR IT"
+        }
+      }
+    }
   };
 
   const sendDataToComfy = async () => {
