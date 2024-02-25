@@ -73,7 +73,6 @@ function UploadComponent() {
   const createJsonToComfy = (presignedUrl) => {
     // Modify this function to match your JSON structure
     return {
-      "prompt": {
         "9": {
           "inputs": {
             "filename_prefix": "ComfyUI",
@@ -110,7 +109,6 @@ function UploadComponent() {
             "title": "BLUR IT"
           }
         }
-      }
     }
   };
 
