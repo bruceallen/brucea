@@ -17,6 +17,7 @@ const s3Client = new S3Client({
   },
 });
 
+/* LOCAL STORAGE IS NOT USED NOW
 // Ensure the uploads directory exists
 const uploadsDirectory = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDirectory)) {
@@ -33,31 +34,24 @@ const storage = multer.diskStorage({
         cb(null, uniqueSuffix + path.extname(file.originalname));
     }
 });
+
 const upload = multer({ storage: storage });
+*/
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/') // make sure this uploads directory exists
+  },
+  filename: function (req, file, cb) {
+    cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname))
+  }
+});
+
+const upload = multer({ storage: storage });
+
 
 app.use(cors());
 app.use(express.static(path.join(__dirname, 'client/build')));
-
-/*
-app.post('/upload', upload.single('file'), async (req, res) => {
-  // Previous code to handle the upload...
-  
-  if (req.file) {
-      const fileUrl = `https://${process.env.BUCKETEER_BUCKET_NAME}.s3.${process.env.BUCKETEER_AWS_REGION}.amazonaws.com/${req.file.filename}`;
-      
-      res.json({
-          success: true,
-          message: 'File uploaded successfully',
-          fileUrl: fileUrl, // Include the file URL in the response
-      });
-  } else {
-      // Handle the error case...
-  }
-
-
-});
-
-*/
 
 
 // Upload endpoint
