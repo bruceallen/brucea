@@ -56,8 +56,47 @@ function UploadComponent() {
           message: 'File uploaded successfully',
           presignedUrl: presignedResult.presignedUrl, // Use the presigned URL here
         };
-        
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(jsonData));
+
+        const jsonToComfy = {
+          "9": {
+            "inputs": {
+              "filename_prefix": "ComfyUI",
+              "images": [
+                "15",
+                0
+              ]
+            },
+            "class_type": "SaveImage",
+            "_meta": {
+              "title": "SAVE IT"
+            }
+          },
+          "10": {
+            "inputs": {
+              "url": presignedResult.presignedUrl
+            },
+            "class_type": "LoadImageByUrl //Browser",
+            "_meta": {
+              "title": "USER IMAGE"
+            }
+          },
+          "15": {
+            "inputs": {
+              "blur_radius": 10,
+              "sigma": 1,
+              "image": [
+                "10",
+                0
+              ]
+            },
+            "class_type": "Blur",
+            "_meta": {
+              "title": "BLUR IT"
+            }
+          }
+        };
+      
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(jsonToComfy));
         const downloadAnchorNode = document.createElement('a');
         downloadAnchorNode.setAttribute("href", dataStr);
         downloadAnchorNode.setAttribute("download", "upload_data.json");
