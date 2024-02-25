@@ -73,7 +73,6 @@ function UploadComponent() {
   const createJsonToComfy = (presignedUrl) => {
     // Modify this function to match your JSON structure
     return {
-      "prompt": {
         "9": {
           "inputs": {
             "filename_prefix": "ComfyUI",
@@ -110,22 +109,19 @@ function UploadComponent() {
             "title": "BLUR IT"
           }
         }
-      }
     };
   };
 
   const sendDataToComfy = async () => {
-    const endpoint = "http://134.215.109.213:44363/prompt";
+    const endpoint = "https://134.215.109.213:44363/prompt";
     try {
       const response = await axios.post(endpoint, { prompt: jsonToComfy });
       console.log('Response from Comfy:', response.data);
       alert('Data sent to Comfy successfully.');
     } catch (error) {
       console.error('BRUCE Error sending data to Comfy:', error);
-    //  console.error(response.data);
       alert('Failed to send data to Comfy.');
       alert(error);
-    //  alert(response.data);
     }
   };
 
