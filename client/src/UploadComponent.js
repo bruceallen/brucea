@@ -64,10 +64,52 @@ function UploadComponent() {
   };
 
   const downloadJson = () => {
-    const jsonToDownload = {
+    /* const jsonToDownload = {
       fileUrl,
       presignedUrl,
+    }; */
+    
+    const jsonToDownload = {
+      // Your JSON structure
+      // Use presignedResult.presignedUrl where necessary
+      "9": {
+        "inputs": {
+          "filename_prefix": "ComfyUI",
+          "images": [
+            "15",
+            0
+          ]
+        },
+        "class_type": "SaveImage",
+        "_meta": {
+          "title": "SAVE IT"
+        }
+      },
+      "10": {
+        "inputs": {
+          "url": presignedUrl
+        },
+        "class_type": "LoadImageByUrl //Browser",
+        "_meta": {
+          "title": "USER IMAGE"
+        }
+      },
+      "15": {
+        "inputs": {
+          "blur_radius": 10,
+          "sigma": 1,
+          "image": [
+            "10",
+            0
+          ]
+        },
+        "class_type": "Blur",
+        "_meta": {
+          "title": "BLUR IT"
+        }
+      }
     };
+
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(jsonToDownload));
     const downloadAnchorNode = document.createElement('a');
     downloadAnchorNode.setAttribute("href", dataStr);
