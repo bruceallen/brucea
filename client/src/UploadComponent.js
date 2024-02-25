@@ -119,8 +119,11 @@ function UploadComponent() {
       console.log('Response from Comfy:', response.data);
       alert('Data sent to Comfy successfully.');
     } catch (error) {
-      console.error('Error sending data to Comfy:', error);
+      console.error('BRUCE Error sending data to Comfy:', error);
+      console.error(response.data);
       alert('Failed to send data to Comfy.');
+      alert(error);
+      alert(response.data);
     }
   };
 
