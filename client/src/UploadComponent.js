@@ -5,11 +5,12 @@ function UploadComponent() {
   const [uploadStatus, setUploadStatus] = useState('');
   const [fileUrl, setFileUrl] = useState('');
   const [fileName, setFileName] = useState('');
+  const [presignedUrl, setPresignedUrl] = useState('');
 
   const handleFileChange = (event) => {
     const selectedFile = event.target.files[0];
     setFile(selectedFile);
-    setFileName(selectedFile.name); // Set the file name when the file is selected
+    setFileName(selectedFile.name);
   };
 
   const handleUpload = async () => {
@@ -34,7 +35,8 @@ function UploadComponent() {
       const result = await response.json();
       if (result.success) {
         setUploadStatus('File uploaded successfully.');
-        setFileUrl(result.fileUrl); // Assuming result.fileUrl is the direct S3 URL
+        setFileUrl(result.fileUrl);
+        fetchPresignedUrl(result.fileUrl.split('/').pop()); // Assuming the filename is at the end of the URL
       } else {
         setUploadStatus('Upload failed: ' + result.message);
       }
@@ -44,70 +46,35 @@ function UploadComponent() {
     }
   };
 
-  const downloadJson = async () => {
+  const fetchPresignedUrl = async (fileName) => {
     try {
-      // Use the state fileName for generating presigned URL
-      const presignedResponse = await fetch(`/generate-presigned-url?fileName=${encodeURIComponent(fileName)}`);
-      if (!presignedResponse.ok) {
+      const response = await fetch(`/generate-presigned-url?fileName=${encodeURIComponent(fileName)}`);
+      if (!response.ok) {
         throw new Error('Failed to fetch presigned URL');
       }
-
-      const presignedResult = await presignedResponse.json();
-      if (presignedResult.success) {
-        const jsonToComfy = {
-          // Your JSON structure
-          // Use presignedResult.presignedUrl where necessary
-          "9": {
-            "inputs": {
-              "filename_prefix": "ComfyUI",
-              "images": [
-                "15",
-                0
-              ]
-            },
-            "class_type": "SaveImage",
-            "_meta": {
-              "title": "SAVE IT"
-            }
-          },
-          "10": {
-            "inputs": {
-              "url": presignedResult.presignedUrl
-            },
-            "class_type": "LoadImageByUrl //Browser",
-            "_meta": {
-              "title": "USER IMAGE"
-            }
-          },
-          "15": {
-            "inputs": {
-              "blur_radius": 10,
-              "sigma": 1,
-              "image": [
-                "10",
-                0
-              ]
-            },
-            "class_type": "Blur",
-            "_meta": {
-              "title": "BLUR IT"
-            }
-          }
-        };
-
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(jsonToComfy));
-        const downloadAnchorNode = document.createElement('a');
-        downloadAnchorNode.setAttribute("href", dataStr);
-        downloadAnchorNode.setAttribute("download", "comfy_ui_configuration.json");
-        document.body.appendChild(downloadAnchorNode);
-        downloadAnchorNode.click();
-        downloadAnchorNode.remove();
+      const result = await response.json();
+      if (result.success) {
+        setPresignedUrl(result.presignedUrl);
       } else {
-        console.error('Failed to get presigned URL:', presignedResult.message);
+        console.error('Failed to get presigned URL:', result.message);
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error fetching presigned URL:', error);
     }
+  };
+
+  const downloadJson = () => {
+    const jsonToDownload = {
+      fileUrl,
+      presignedUrl,
+    };
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(jsonToDownload));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", "file_info.json");
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
   };
 
   return (
@@ -115,7 +82,10 @@ function UploadComponent() {
       <input type="file" onChange={handleFileChange} />
       <button onClick={handleUpload}>Upload</button>
       {uploadStatus && <p>{uploadStatus}</p>}
-      {fileUrl && <button onClick={downloadJson}>Download JSON</button>}
+      {presignedUrl && <>
+        <a href={presignedUrl} target="_blank" rel="noopener noreferrer">Access File</a>
+        <button onClick={downloadJson}>Download JSON</button>
+      </>}
     </div>
   );
 }
