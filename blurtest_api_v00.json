@@ -1,0 +1,38 @@
+{
+  "9": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "15",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "SAVE IT"
+    }
+  },
+  "10": {
+    "inputs": {
+      "url": "https://bucketeer-f04e28f2-1280-48f6-9cc6-a575bfe49bcd.s3.us-east-1.amazonaws.com/1708889385319-591281845.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIAX7CRDYXPUVPLRGSD%2F20240225%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20240225T192945Z&X-Amz-Expires=3600&X-Amz-Signature=e365beb1db67dffa6fb35247a7704d9c8db1665c466a0d703d11c72843963cfb&X-Amz-SignedHeaders=host&x-id=GetObject"
+    },
+    "class_type": "LoadImageByUrl //Browser",
+    "_meta": {
+      "title": "USER IMAGE"
+    }
+  },
+  "15": {
+    "inputs": {
+      "blur_radius": 10,
+      "sigma": 1,
+      "image": [
+        "10",
+        0
+      ]
+    },
+    "class_type": "Blur",
+    "_meta": {
+      "title": "BLUR IT"
+    }
+  }
+}

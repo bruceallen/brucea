@@ -49,6 +49,48 @@ function UploadComponent() {
 
         setUploadStatus(`File uploaded successfully: ${uploadResult.fileUrl} and presigned URL is ${presignedResult.presignedUrl}`);
 
+        const workflowJson =
+        {
+          "9": {
+            "inputs": {
+              "filename_prefix": "ComfyUI",
+              "images": [
+                "15",
+                0
+              ]
+            },
+            "class_type": "SaveImage",
+            "_meta": {
+              "title": "SAVE IT"
+            }
+          },
+          "10": {
+            "inputs": {
+              "url": presignedResult.presignedUrl
+            },
+            "class_type": "LoadImageByUrl //Browser",
+            "_meta": {
+              "title": "USER IMAGE"
+            }
+          },
+          "15": {
+            "inputs": {
+              "blur_radius": 10,
+              "sigma": 1,
+              "image": [
+                "10",
+                0
+              ]
+            },
+            "class_type": "Blur",
+            "_meta": {
+              "title": "BLUR IT"
+            }
+          }
+        };
+
+        // THE USER WANTS TO DOWNLOAD THIS - HOW DO I GIVE THEM A BUTTON TO DO SO?
+
       } else {
         setUploadStatus('Upload failed: ' + uploadResult.message);
       }
@@ -57,6 +99,31 @@ function UploadComponent() {
       setUploadStatus('Upload failed: ' + error.message);
     }
   };
+
+  const downloadJson = () => {
+    const jsonData = {
+      success: true,
+      message: 'File uploaded successfully',
+      fileUrl: fileUrl,
+    };
+    
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(jsonData));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href",     dataStr);
+    downloadAnchorNode.setAttribute("download", "upload_data.json");
+    document.body.appendChild(downloadAnchorNode); // required for firefox
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+  };
+
+  return (
+    <div>
+      <input type="file" onChange={handleFileChange} />
+      <button onClick={handleUpload}>Upload</button>
+      {uploadStatus && <p>{uploadStatus}</p>}
+      {fileUrl && <button onClick={downloadJson}>Download JSON</button>}
+    </div>
+  );
 
   return (
     <div>
@@ -67,75 +134,10 @@ function UploadComponent() {
         <p>Presigned URL for download:</p>
         <a href={presignedUrl} target="_blank" rel="noopener noreferrer">Download File</a>
       </div>}
-    </div>
-  );
-}
-
-export default UploadComponent;
-
-
-/*
-import React, { useState } from 'react';
-
-function UploadComponent() {
-  const [file, setFile] = useState(null);
-  const [uploadStatus, setUploadStatus] = useState('');
-
-  const handleFileChange = (event) => {
-    setFile(event.target.files[0]);
-  };
-
-  const handleUpload = async () => {
-    if (!file) {
-      alert('Please select a file first!');
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-      const response = await fetch('http://localhost:5001/upload', {
-        method: 'POST',
-        body: formData,
-        // Ensure headers are set if your backend expects them
-        // headers: {
-        //   'Accept': 'application/json',
-        // },
-      });
-
-      if (!response.ok) {
-        throw new Error('Network response was not ok');
-      }
-
-      // Attempt to parse the response as JSON
-      try {
-        const result = await response.json();
-        if (result.success) {
-          setUploadStatus('File uploaded successfully: ' + result.fileUrl);
-
-
-        } else {
-          setUploadStatus('Upload failed: ' + result.message);
-        }
-      } catch (jsonParseError) {
-        console.error('Error parsing response as JSON:', jsonParseError);
-        setUploadStatus('Upload failed: Response was not valid JSON');
-      }
-    } catch (networkError) {
-      console.error('Error uploading the file:', networkError);
-      setUploadStatus('Upload failed: ' + networkError.message);
-    }
-  };
-
-  return (
-    <div>
-      <input type="file" onChange={handleFileChange} />
-      <button onClick={handleUpload}>Upload</button>
       {uploadStatus && <p>{uploadStatus}</p>}
+      {fileUrl && <button onClick={downloadJson}>Download JSON</button>}
     </div>
   );
 }
 
 export default UploadComponent;
-*/
