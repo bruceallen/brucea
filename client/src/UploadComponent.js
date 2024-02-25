@@ -4,6 +4,8 @@ import axios from 'axios';
 
 function UploadComponent() {
   const [file, setFile] = useState(null);
+  const [fileUrl, setFileUrl] = useState('');
+  const [fileName, setFileName] = useState('');
   const [uploadStatus, setUploadStatus] = useState('');
   const [presignedUrl, setPresignedUrl] = useState('');
   const [jsonToComfy, setJsonToComfy] = useState(null); // Assuming you set this state somewhere in your component
