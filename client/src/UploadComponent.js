@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-// import https from 'https'; // Required for the httpsAgent configuration
 
 function UploadComponent() {
   const [file, setFile] = useState(null);
@@ -71,42 +70,45 @@ function UploadComponent() {
   };
 
   const createJsonToComfy = (presignedUrl) => {
+
+    return {
     // Modify this function to match your JSON structure
-    "prompt": {
-      "9": {
-        "inputs": {
-          "filename_prefix": "ComfyUI",
-          "images": [
-            "15",
-            0
-          ]
+      "prompt": {
+        "9": {
+          "inputs": {
+            "filename_prefix": "ComfyUI",
+            "images": [
+              "15",
+              0
+            ]
+          },
+          "class_type": "SaveImage",
+          "_meta": {
+            "title": "SAVE IT"
+          }
         },
-        "class_type": "SaveImage",
-        "_meta": {
-          "title": "SAVE IT"
-        }
-      },
-      "10": {
-        "inputs": {
-          "url": presignedUrl
+        "10": {
+          "inputs": {
+            "url": presignedUrl
+          },
+          "class_type": "LoadImageByUrl //Browser",
+          "_meta": {
+            "title": "USER IMAGE"
+          }
         },
-        "class_type": "LoadImageByUrl //Browser",
-        "_meta": {
-          "title": "USER IMAGE"
-        }
-      },
-      "15": {
-        "inputs": {
-          "blur_radius": 10,
-          "sigma": 1,
-          "image": [
-            "10",
-            0
-          ]
-        },
-        "class_type": "Blur",
-        "_meta": {
-          "title": "BLUR IT"
+        "15": {
+          "inputs": {
+            "blur_radius": 10,
+            "sigma": 1,
+            "image": [
+              "10",
+              0
+            ]
+          },
+          "class_type": "Blur",
+          "_meta": {
+            "title": "BLUR IT"
+          }
         }
       }
     };
