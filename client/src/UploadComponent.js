@@ -117,7 +117,8 @@ function UploadComponent() {
   const sendDataToComfy = async () => {
     const endpoint = "http://134.215.109.213:44363/prompt";
     try {
-      const response = await axios.post(endpoint, { jsonToComfy });
+      const response = await axios.post(endpoint, { jsonToComfy }, {
+        headers: { 'Content-Type': 'application/json' });
       console.log('Response from Comfy:', response.data);
       alert('Data sent to Comfy successfully.');
     } catch (error) {
