@@ -69,44 +69,53 @@ function UploadComponent() {
   };
 
   /*
-  const handleUpload = async () => {
-    if (!file) {
-      alert('Please select a file first!');
-      return;
-    }
-
-    setIsLoadingUpload(true);
-
-    const formData = new FormData();
-    formData.append('file', file);
-
+  // Function to check image availability
+  const checkImageAvailability = async (imageUrl, retryCount = 0) => {
     try {
-      const response = await fetch('/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error('Network response was not ok');
-      }
-
-      const result = await response.json();
-      if (result.success) {
-        setUploadStatus('File uploaded successfully.');
-        setIsLoadingUpload(false);
-        setFileUrl(result.fileUrl);
-        fetchPresignedUrl(result.fileUrl.split('/').pop()); // Assuming the filename is at the end of the URL
+      const response = await fetch(imageUrl, { method: 'HEAD' });
+      if (response.ok) {
+        // Image is available
+        setImageUrl(imageUrl); // Set image URL state
+        setIsLoadingComfy(false); // Update loading state
+        setUploadStatus('Image processing complete.');
       } else {
-        setUploadStatus('Upload failed: ' + result.message);
-        setIsLoadingUpload(false);
+        throw new Error('Image not available yet');
       }
     } catch (error) {
-      console.error('Error uploading the file:', error);
-      setUploadStatus('Upload failed: ' + error.message);
-      setIsLoadingUpload(false);
+      if (retryCount < 10) { // Retry up to 5 times
+        setTimeout(() => checkImageAvailability(imageUrl, retryCount + 1), 1000); // Wait 2 seconds before retrying
+        setUploadStatus('retry count:', retryCount);
+      } else {
+        setIsLoadingComfy(false); // Update loading state
+        setUploadStatus('Failed to process image with Comfy.');
+      }
+    }
+  };*/
+
+  const checkImageAvailability = async (imageUrl) => {
+    setIsLoadingComfy(true); // Start loading state
+  
+    try {
+      // Use the proxy endpoint for CORS
+      const response = await fetch(`/check-image-availability?imageUrl=${encodeURIComponent(imageUrl)}`);
+      const data = await response.json();
+  
+      if (data.success) {
+        setImageUrl(imageUrl); // Image is available, set image URL state
+        setIsLoadingComfy(false); // End loading state
+        setUploadStatus('Image processing complete.');
+      } else {
+        // Retry or handle image not available yet
+        setIsLoadingComfy(false); // Optionally keep loading state if retrying
+        setUploadStatus('Waiting for image...');
+        // Optionally implement a retry mechanism here
+      }
+    } catch (error) {
+      console.error('Error checking image availability:', error);
+      setIsLoadingComfy(false); // End loading state
+      setUploadStatus('Failed to check image availability.');
     }
   };
-  */
 
   const fetchPresignedUrl = async (fileName) => {
     try {
@@ -190,45 +199,37 @@ function UploadComponent() {
       }
     };
   };
-
-  // Function to fetch history using prompt_id and display the output filename
+  
+  // Adjusted function to fetch history and then check for image availability
   const fetchHistoryAndDisplayFilename = async (promptId) => {
     try {
       const response = await axios.get(`/proxy-history/${promptId}`);
-      // Alerting the response data for debugging
-      // alert(JSON.stringify(response.data, null, 2));
-  
-      // The history data seems to be keyed by the promptId, so we access it accordingly
       const historyData = response.data[promptId];
-  
-      // Now we can attempt to find the outputs within this specific history data
-      const outputs = historyData && historyData.outputs ? historyData.outputs : null;
-  
+
       let filename = '';
-      if (outputs) {
-        for (const key in outputs) {
-          if (outputs[key].images && outputs[key].images.length > 0) {
-            filename = outputs[key].images[0].filename; // Grab the first filename
+      if (historyData.outputs) {
+        for (const key in historyData.outputs) {
+          if (historyData.outputs[key].images && historyData.outputs[key].images.length > 0) {
+            filename = historyData.outputs[key].images[0].filename;
             break;
           }
         }
       }
-  
+
       if (filename) {
         setOutputFilename(filename); // Update state with the filename
-        
-        // Assuming 'http://134.215.109.213:44363' is your Comfy server's base URL
         const imageUrl = `http://134.215.109.213:44363/view?filename=${filename}`;
-        setImageUrl(imageUrl); // Set image URL state
+        checkImageAvailability(imageUrl); // Check if the image is available before showing it
       } else {
+        setIsLoadingComfy(false); // Update loading state
         alert('No output filename found.');
       }
     } catch (error) {
       console.error('Error fetching history:', error);
+      setIsLoadingComfy(false); // Update loading state
       alert('Failed to fetch history data.');
     }
   };
-  
 
   const sendDataToComfy = async () => {
     console.log("sendDataToComfy started"); // Debugging line
@@ -265,11 +266,12 @@ function UploadComponent() {
   return (
     <div>
       <input type="file" onChange={handleFileChange} disabled={isLoadingUpload || isLoadingComfy} />
-      
+      {isLoadingUpload && <div className="spinner"></div>}
       {isLoadingUpload && <p>Loading...</p>}
+      {uploadStatus && <p>{uploadStatus}</p>}
       {isLoadingComfy && <p>Processing with Comfy...</p>}
       {uploadStatus && <p>{uploadStatus}</p>}
-
+  
       {presignedUrl && (
         <>
           <button onClick={downloadJson}>Download JSON</button>
@@ -290,8 +292,8 @@ function UploadComponent() {
           {outputFilename && <p>Output Filename: {outputFilename}</p>}
         </>
       )}
-      {/* Display the image if the URL is available */}
-      {imageUrl && <img src={imageUrl} alt="Output from Comfy" />}
+      {/* Display the image if the URL is available and Comfy processing is not loading */}
+      {!isLoadingComfy && imageUrl && <img src={imageUrl} alt="Output from Comfy" />}
     </div>
   );
 }

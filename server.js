@@ -11,6 +11,7 @@ const { GetObjectCommand } = require("@aws-sdk/client-s3");
 const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
+const fetch = require('node-fetch'); // Make sure you have 'node-fetch' installed
 
 const app = express();
 
@@ -169,6 +170,27 @@ app.get('/proxy-history/:uid', async (req, res) => {
     } catch (error) {
         console.error('Error fetching history:', error);
         res.status(500).json({ success: false, message: 'Failed to fetch history.' });
+    }
+});
+
+// Endpoint to check image availability
+app.get('/check-image-availability', async (req, res) => {
+    const imageUrl = req.query.imageUrl;
+    if (!imageUrl) {
+      return res.status(400).json({ success: false, message: 'Image URL is required.' });
+    }
+  
+    try {
+      const response = await fetch(imageUrl, { method: 'HEAD' });
+      if (response.ok) {
+        // Image is available
+        res.json({ success: true, message: 'Image is available.' });
+      } else {
+        // Image is not available
+        res.status(404).json({ success: false, message: 'Image is not available.' });
+      }
+    } catch (error) {
+      res.status(500).json({ success: false, message: 'Error checking image availability.' });
     }
 });
 
