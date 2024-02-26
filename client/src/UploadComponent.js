@@ -1,29 +1,81 @@
 // BRUCE UPLOADCOMPONENT.JS - 2024.02.25 - works to send to ComfyUI YAAY
 // now gonna work on... A PROGRESS BAR
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
 function UploadComponent() {
   const [file, setFile] = useState(null);
+  const [fileUrl, setFileUrl] = useState(''); 
+  // const [fileName, setFileName] = useState(''); unused
   const [uploadStatus, setUploadStatus] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [presignedUrl, setPresignedUrl] = useState('');
   const [isLoadingUpload, setIsLoadingUpload] = useState(false);
   const [isLoadingComfy, setIsLoadingComfy] = useState(false);
   const [comfyResponse, setComfyResponse] = useState(null);
   const [outputFilename, setOutputFilename] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
 
+  /*
   useEffect(() => {
     if (file) {
       handleUpload();
     }
   }, [file]);
+  */
+
+  const handleUpload = useCallback(async () => {
+    if (!file) {
+      alert('Please select a file first!');
+      return;
+    }
+
+    setIsLoadingUpload(true);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+
+      const result = await response.json();
+      if (result.success) {
+        setUploadStatus('File uploaded successfully.');
+        setIsLoadingUpload(false);
+        setFileUrl(result.fileUrl);
+        fetchPresignedUrl(result.fileUrl.split('/').pop());
+      } else {
+        setUploadStatus('Upload failed: ' + result.message);
+        setIsLoadingUpload(false);
+      }
+    } catch (error) {
+      console.error('Error uploading the file:', error);
+      setUploadStatus('Upload failed: ' + error.message);
+      setIsLoadingUpload(false);
+    }
+  }, [file]); // Include any dependencies of handleUpload here
+
+  useEffect(() => {
+    if (file) {
+      handleUpload();
+    }
+  }, [file, handleUpload]); // Now handleUpload is included in the dependency array
+
 
   const handleFileChange = (event) => {
     const selectedFile = event.target.files[0];
     setFile(selectedFile);
+  //  setFileName(selectedFile.name); unused
   };
 
+  /*
   const handleUpload = async () => {
     if (!file) {
       alert('Please select a file first!');
@@ -31,6 +83,7 @@ function UploadComponent() {
     }
 
     setIsLoadingUpload(true);
+
     const formData = new FormData();
     formData.append('file', file);
 
@@ -60,6 +113,7 @@ function UploadComponent() {
       setIsLoadingUpload(false);
     }
   };
+  */
 
   const fetchPresignedUrl = async (fileName) => {
     try {
@@ -71,9 +125,6 @@ function UploadComponent() {
       const result = await response.json();
       if (result.success) {
         setPresignedUrl(result.presignedUrl);
-        // Optionally, call sendJsonToComfyUI here after setting the presigned URL
-        // const jsonToComfy = createJsonToComfy(result.presignedUrl);
-        // sendJsonToComfyUI(jsonToComfy);
       } else {
         console.error('Failed to get presigned URL:', result.message);
       }
@@ -164,20 +215,23 @@ function UploadComponent() {
     }
   };
   
-  const sendDataToComfy = async () => {
-    const jsonToComfy = createJsonToComfy(presignedUrl);
-    setIsLoadingComfy(true);
 
+  const sendDataToComfy = async () => {
+    console.log("sendDataToComfy started"); // Debugging line
+    setIsLoadingComfy(true);
+    const jsonToComfy = createJsonToComfy(presignedUrl);
+  
     try {
       const response = await axios.post('/proxy-prompt', jsonToComfy, {
         headers: { 'Content-Type': 'application/json' }
       });
-      setComfyResponse(response.data); // Store the Comfy response
+      console.log("Data sent to Comfy successfully."); // Debugging line
+      setComfyResponse(response.data);
       setUploadStatus('Data sent to Comfy successfully.');
-      setIsLoadingComfy(false);
     } catch (error) {
       console.error('Error sending data to Comfy:', error);
       setUploadStatus('Failed to send data to Comfy.');
+    } finally {
       setIsLoadingComfy(false);
     }
   };
@@ -196,18 +250,17 @@ function UploadComponent() {
 
   return (
     <div>
-      <input type="file" onChange={handleFileChange} />
-
+      <input type="file" onChange={handleFileChange} disabled={isLoadingUpload || isLoadingComfy} />
+      
       {isLoadingUpload && <p>Loading...</p>}
-      {uploadStatus && <p>{uploadStatus}</p>}
       {isLoadingComfy && <p>Processing with Comfy...</p>}
 
-      <button onClick={handleUpload}>Upload</button>
       {uploadStatus && <p>{uploadStatus}</p>}
+
       {presignedUrl && (
         <>
           <button onClick={downloadJson}>Download JSON</button>
-          <button onClick={sendDataToComfy}>Send to Comfy</button>
+          <button onClick={sendDataToComfy} disabled={isLoadingUpload || isLoadingComfy}>Send to Comfy</button>
           {comfyResponse && (
             <div>
               <h3>Response from Comfy:</h3>
@@ -229,5 +282,7 @@ function UploadComponent() {
     </div>
   );
 }
+
+// <input type="file" onChange={handleFileChange} />
 
 export default UploadComponent;
