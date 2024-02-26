@@ -179,8 +179,8 @@ function UploadComponent() {
         },
         "16": {
           "inputs": {
-            "width": 512,
-            "height": 512,
+            "width": 2048,
+            "height": 2048,
             "interpolation": "bicubic",
             "keep_proportion": true,
             "condition": "only if bigger",
@@ -296,7 +296,5 @@ function UploadComponent() {
     </div>
   );
 }
-
-// <input type="file" onChange={handleFileChange} />
 
 export default UploadComponent;
