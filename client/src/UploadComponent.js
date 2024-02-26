@@ -6,24 +6,22 @@ import axios from 'axios';
 
 function UploadComponent() {
   const [file, setFile] = useState(null);
-  const [fileUrl, setFileUrl] = useState('');
-  const [fileName, setFileName] = useState('');
   const [uploadStatus, setUploadStatus] = useState('');
-  const [presignedUrl, setPresignedUrl] = useState('');
-  const [jsonToComfy, setJsonToComfy] = useState(null); // Assuming you set this state somewhere in your component
-
+  const [isLoadingUpload, setIsLoadingUpload] = useState(false);
+  const [isLoadingComfy, setIsLoadingComfy] = useState(false);
+  const [comfyResponse, setComfyResponse] = useState(null);
+  const [outputFilename, setOutputFilename] = useState('');
   const [imageUrl, setImageUrl] = useState('');
 
-  // State for storing the response from Comfy
-  const [comfyResponse, setComfyResponse] = useState(null);
-
-  // State for storing the output filename
-  const [outputFilename, setOutputFilename] = useState('');
+  useEffect(() => {
+    if (file) {
+      handleUpload();
+    }
+  }, [file]);
 
   const handleFileChange = (event) => {
     const selectedFile = event.target.files[0];
     setFile(selectedFile);
-    setFileName(selectedFile.name);
   };
 
   const handleUpload = async () => {
@@ -32,6 +30,7 @@ function UploadComponent() {
       return;
     }
 
+    setIsLoadingUpload(true);
     const formData = new FormData();
     formData.append('file', file);
 
@@ -48,14 +47,17 @@ function UploadComponent() {
       const result = await response.json();
       if (result.success) {
         setUploadStatus('File uploaded successfully.');
+        setIsLoadingUpload(false);
         setFileUrl(result.fileUrl);
         fetchPresignedUrl(result.fileUrl.split('/').pop()); // Assuming the filename is at the end of the URL
       } else {
         setUploadStatus('Upload failed: ' + result.message);
+        setIsLoadingUpload(false);
       }
     } catch (error) {
       console.error('Error uploading the file:', error);
       setUploadStatus('Upload failed: ' + error.message);
+      setIsLoadingUpload(false);
     }
   };
 
@@ -164,7 +166,7 @@ function UploadComponent() {
   
   const sendDataToComfy = async () => {
     const jsonToComfy = createJsonToComfy(presignedUrl);
-    const endpoint = "/proxy-prompt";
+    setIsLoadingComfy(true);
 
     try {
       const response = await axios.post('/proxy-prompt', jsonToComfy, {
@@ -172,9 +174,11 @@ function UploadComponent() {
       });
       setComfyResponse(response.data); // Store the Comfy response
       setUploadStatus('Data sent to Comfy successfully.');
+      setIsLoadingComfy(false);
     } catch (error) {
       console.error('Error sending data to Comfy:', error);
       setUploadStatus('Failed to send data to Comfy.');
+      setIsLoadingComfy(false);
     }
   };
 
@@ -193,6 +197,11 @@ function UploadComponent() {
   return (
     <div>
       <input type="file" onChange={handleFileChange} />
+
+      {isLoadingUpload && <p>Loading...</p>}
+      {uploadStatus && <p>{uploadStatus}</p>}
+      {isLoadingComfy && <p>Processing with Comfy...</p>}
+
       <button onClick={handleUpload}>Upload</button>
       {uploadStatus && <p>{uploadStatus}</p>}
       {presignedUrl && (
@@ -218,38 +227,6 @@ function UploadComponent() {
       {/* Display the image if the URL is available */}
       {imageUrl && <img src={imageUrl} alt="Output from Comfy" />}
     </div>
-  );
-
-  return (
-    <div>
-      <input type="file" onChange={handleFileChange} />
-      <button onClick={handleUpload}>Upload</button>
-      {uploadStatus && <p>{uploadStatus}</p>}
-
-      {presignedUrl && (
-        <>
-          <button onClick={downloadJson}>Download JSON</button>
-          <button onClick={sendDataToComfy}>Send to Comfy</button>
-          {comfyResponse && (
-            <div>
-              <h3>Response from Comfy:</h3>
-              <p>Prompt ID: {comfyResponse.prompt_id}</p>
-              <p>Number: {comfyResponse.number}</p>
-              {/* You can render other data from the response here */}
-            </div>
-          )}
-        </>
-      )}
-
-      {comfyResponse && comfyResponse.prompt_id && (
-        <button onClick={() => fetchHistoryAndDisplayFilename(comfyResponse.prompt_id)}>
-          Get Output Filename
-        </button>
-      )}
-      {outputFilename && <p>Output Filename: {outputFilename}</p>}
-    </div>
-
-    
   );
 }
 
