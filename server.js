@@ -1,3 +1,6 @@
+// BRUCE SERVER.JS - 2024.02.25 - works to send to ComfyUI YAAY
+// now gonna work on... A PROGRESS BAR
+
 require('dotenv').config();
 const express = require('express');
 const axios = require('axios'); 
@@ -21,7 +24,7 @@ const s3Client = new S3Client({
 });
 
 // Ensure the uploads directory exists
-const uploadsDirectory = path.join(__dirname, 'uploads2');
+const uploadsDirectory = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDirectory)) {
     fs.mkdirSync(uploadsDirectory, { recursive: true });
 }
@@ -29,7 +32,7 @@ if (!fs.existsSync(uploadsDirectory)) {
 // Configure multer for local storage
 const storage = multer.diskStorage({
     destination: function(req, file, cb) {
-        cb(null, 'uploads2/');
+        cb(null, 'uploads/');
     },
     filename: function(req, file, cb) {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -40,8 +43,8 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 app.use(cors());
-app.use(express.static(path.join(__dirname, 'client/build')));
 app.use(express.json());
+app.use(express.static(path.join(__dirname, 'client/build')));
 
 // Upload endpoint
 app.post('/upload', upload.single('file'), async (req, res) => {
@@ -147,32 +150,6 @@ app.post('/proxy-prompt', async (req, res) => {
     }
 });
 
-/*
-// Server-side: Add a new route in server.js for fetching history
-app.get('/proxy-history/:uid', async (req, res) => {
-    const uid = req.params.uid;
-    const historyUrl = `http://134.215.109.213:44363/history/${uid}`;
-
-    try {
-      const response = await axios.get(historyUrl, {
-        headers: {
-          'Content-Type': 'application/json',
-          // Add any other necessary headers here
-        },
-      });
-
-      res.json(response.data);
-    } catch (error) {
-      if (error.response) {
-        res.status(error.response.status).json(error.response.data);
-      } else if (error.request) {
-        res.status(500).json({ message: 'No response received from Comfy API' });
-      } else {
-        res.status(500).json({ message: error.message });
-      }
-    }
-});*/
-
 app.get('/proxy-history/:uid', async (req, res) => {
     const uid = req.params.uid;
     const historyUrl = `http://134.215.109.213:44363/history/${uid}`;
@@ -195,6 +172,7 @@ app.get('/proxy-history/:uid', async (req, res) => {
     }
 });
 
+// This should be the last route
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'client/build/index.html'));
 });

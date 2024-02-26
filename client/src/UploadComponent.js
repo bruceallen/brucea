@@ -1,5 +1,5 @@
 // BRUCE UPLOADCOMPONENT.JS - 2024.02.25 - works to send to ComfyUI YAAY
-// now gonna work on getting stuff back!
+// now gonna work on... A PROGRESS BAR
 
 import React, { useState } from 'react';
 import axios from 'axios';
@@ -219,7 +219,7 @@ function UploadComponent() {
       {imageUrl && <img src={imageUrl} alt="Output from Comfy" />}
     </div>
   );
-  
+
   return (
     <div>
       <input type="file" onChange={handleFileChange} />
