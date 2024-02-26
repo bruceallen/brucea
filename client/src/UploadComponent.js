@@ -268,7 +268,6 @@ function UploadComponent() {
       <input type="file" onChange={handleFileChange} disabled={isLoadingUpload || isLoadingComfy} />
       {isLoadingUpload && <div className="spinner"></div>}
       {isLoadingUpload && <p>Loading...</p>}
-      {uploadStatus && <p>{uploadStatus}</p>}
       {isLoadingComfy && <p>Processing with Comfy...</p>}
       {uploadStatus && <p>{uploadStatus}</p>}
   
