@@ -118,11 +118,11 @@ function UploadComponent() {
     const jsonToComfy = createJsonToComfy(presignedUrl);
     const jsonToComfyStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(jsonToComfy));
 
-    alert('sending:', jsonToComfyStr);
+    alert(jsonToComfyStr);
 
     const endpoint = "http://134.215.109.213:44363/prompt";
     try {
-      const response = await axios.post(endpoint, jsonToComfyStr);
+      const response = await axios.post(endpoint, jsonToComfy);
       console.log('Response from Comfy:', response.data);
       alert('Data sent to Comfy successfully.');
     } catch (error) {
