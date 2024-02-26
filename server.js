@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const axios = require('axios'); 
 const multer = require('multer');
 const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
@@ -20,7 +21,7 @@ const s3Client = new S3Client({
 });
 
 // Ensure the uploads directory exists
-const uploadsDirectory = path.join(__dirname, 'uploads');
+const uploadsDirectory = path.join(__dirname, 'uploads2');
 if (!fs.existsSync(uploadsDirectory)) {
     fs.mkdirSync(uploadsDirectory, { recursive: true });
 }
@@ -28,7 +29,7 @@ if (!fs.existsSync(uploadsDirectory)) {
 // Configure multer for local storage
 const storage = multer.diskStorage({
     destination: function(req, file, cb) {
-        cb(null, 'uploads/');
+        cb(null, 'uploads2/');
     },
     filename: function(req, file, cb) {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -40,6 +41,7 @@ const upload = multer({ storage: storage });
 
 app.use(cors());
 app.use(express.static(path.join(__dirname, 'client/build')));
+app.use(express.json());
 
 // Upload endpoint
 app.post('/upload', upload.single('file'), async (req, res) => {
@@ -112,6 +114,43 @@ app.get('/generate-presigned-url', async (req, res) => {
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'client/build/index.html'));
 });
+
+// Proxy endpoint
+app.post('/proxy-prompt', async (req, res) => {
+    const externalApiUrl = 'http://134.215.109.213:44363/prompt';
+  
+    try {
+      // Forward the request to the external API
+      const response = await axios.post(externalApiUrl, req.body, {
+        headers: {
+          'Content-Type': 'application/json',
+          // Include other necessary headers here
+        },
+      });
+  
+      // Send the response from the external API back to the client
+      res.json(response.data);
+    } catch (error) {
+      // Handle errors from the external API
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        console.log(error.response.data);
+        console.log(error.response.status);
+        console.log(error.response.headers);
+        res.status(error.response.status).json(error.response.data);
+      } else if (error.request) {
+        // The request was made but no response was received
+        console.log(error.request);
+        res.status(500).json({ message: 'No response received from external API' });
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        console.log('Error', error.message);
+        res.status(500).json({ message: error.message });
+      }
+    }
+});
+
 
 const port = process.env.PORT || 5000;
 app.listen(port, () => {

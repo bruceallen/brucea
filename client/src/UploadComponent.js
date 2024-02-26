@@ -113,14 +113,19 @@ function UploadComponent() {
     };
   };
 
+  
   const sendDataToComfy = async () => {
     const jsonToComfy = createJsonToComfy(presignedUrl);
     const jsonToComfyStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(jsonToComfy));
-
     alert(jsonToComfyStr);
 
-    const endpoint = "http://134.215.109.213:44363/prompt";
+    const endpoint = "/proxy-prompt";
     try {
+//      const response = await axios.post(endpoint, jsonToComfy, {
+//        headers: {
+//          'Content-Type': 'application/json'
+//        }
+//      });
       const response = await axios.post(endpoint, jsonToComfy);
       console.log('Response from Comfy:', response.data);
       alert('Data sent to Comfy successfully.');
