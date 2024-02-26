@@ -218,7 +218,7 @@ function UploadComponent() {
 
       if (filename) {
         setOutputFilename(filename); // Update state with the filename
-        const imageUrl = `http://134.215.109.213:44363/view?filename=${filename}`;
+        const imageUrl = `https://134.215.109.213:44363/view?filename=${filename}`;
         checkImageAvailability(imageUrl); // Check if the image is available before showing it
       } else {
         setIsLoadingComfy(false); // Update loading state
