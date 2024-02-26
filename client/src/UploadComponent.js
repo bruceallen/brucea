@@ -16,14 +16,7 @@ function UploadComponent() {
   const [comfyResponse, setComfyResponse] = useState(null);
   const [outputFilename, setOutputFilename] = useState('');
 
-  /*
-  useEffect(() => {
-    if (file) {
-      handleUpload();
-    }
-  }, [file]);
-  */
-
+  // some kind of callback hack to make everything work right
   const handleUpload = useCallback(async () => {
     if (!file) {
       alert('Please select a file first!');
@@ -137,6 +130,8 @@ function UploadComponent() {
     return {
     // Modify this function to match your JSON structure
       "prompt": {
+        
+
         "9": {
           "inputs": {
             "filename_prefix": "ComfyUI",
@@ -147,7 +142,7 @@ function UploadComponent() {
           },
           "class_type": "SaveImage",
           "_meta": {
-            "title": "SAVE IT"
+            "title": "Save Image"
           }
         },
         "10": {
@@ -156,7 +151,7 @@ function UploadComponent() {
           },
           "class_type": "LoadImageByUrl //Browser",
           "_meta": {
-            "title": "USER IMAGE"
+            "title": "Load Image By URL"
           }
         },
         "15": {
@@ -164,15 +159,34 @@ function UploadComponent() {
             "blur_radius": 10,
             "sigma": 1,
             "image": [
-              "10",
+              "16",
               0
             ]
           },
           "class_type": "Blur",
           "_meta": {
-            "title": "BLUR IT"
+            "title": "Blur"
+          }
+        },
+        "16": {
+          "inputs": {
+            "width": 512,
+            "height": 512,
+            "interpolation": "bicubic",
+            "keep_proportion": true,
+            "condition": "only if bigger",
+            "image": [
+              "10",
+              0
+            ]
+          },
+          "class_type": "ImageResize+",
+          "_meta": {
+            "title": "Image Resize"
           }
         }
+
+
       }
     };
   };
@@ -254,7 +268,6 @@ function UploadComponent() {
       
       {isLoadingUpload && <p>Loading...</p>}
       {isLoadingComfy && <p>Processing with Comfy...</p>}
-
       {uploadStatus && <p>{uploadStatus}</p>}
 
       {presignedUrl && (
