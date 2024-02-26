@@ -70,7 +70,6 @@ function UploadComponent() {
   };
 
   const createJsonToComfy = (presignedUrl) => {
-
     return {
     // Modify this function to match your JSON structure
       "prompt": {
@@ -127,8 +126,9 @@ function UploadComponent() {
       alert('Data sent to Comfy successfully.');
     } catch (error) {
       console.error('BRUCE Error sending data to Comfy:', error);
-      alert('Failed to send data to Comfy - Bruce 1.');
+      alert('Failed to send data to Comfy - Bruce 1');
       alert(error);
+      alert('End Error - Bruce 2');
     }
   };
 
@@ -151,50 +151,7 @@ function UploadComponent() {
 
   const downloadJson = () => {
     // const jsonToDownload = { fileUrl, presignedUrl }; // Adjust this object as needed for your requirements
-
-    const jsonToDownload = {
-      // Your JSON structure
-      // Use presignedResult.presignedUrl where necessary
-      "prompt": {
-        "9": {
-          "inputs": {
-            "filename_prefix": "ComfyUI",
-            "images": [
-              "15",
-              0
-            ]
-          },
-          "class_type": "SaveImage",
-          "_meta": {
-            "title": "SAVE IT"
-          }
-        },
-        "10": {
-          "inputs": {
-            "url": presignedUrl
-          },
-          "class_type": "LoadImageByUrl //Browser",
-          "_meta": {
-            "title": "USER IMAGE"
-          }
-        },
-        "15": {
-          "inputs": {
-            "blur_radius": 10,
-            "sigma": 1,
-            "image": [
-              "10",
-              0
-            ]
-          },
-          "class_type": "Blur",
-          "_meta": {
-            "title": "BLUR IT"
-          }
-        }
-      }
-    };
-
+    const jsonToDownload = createJsonToComfy(presignedUrl);
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(jsonToDownload));
     const downloadAnchorNode = document.createElement('a');
     downloadAnchorNode.setAttribute("href", dataStr);
