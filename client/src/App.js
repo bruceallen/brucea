@@ -36,7 +36,7 @@ function App() {
     <div className="App">
       <header className="App-header">
         <p>
-          File Upload Example
+          BRUCE TEST 2024.02.26 B
         </p>
         <UploadComponent />
       </header>
