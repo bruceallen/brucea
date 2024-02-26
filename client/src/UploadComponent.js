@@ -1,3 +1,6 @@
+// BRUCE UPLOADCOMPONENT.JS - 2024.02.25 - works to send to ComfyUI YAAY
+// now gonna work on getting stuff back!
+
 import React, { useState } from 'react';
 import axios from 'axios';
 
@@ -8,6 +11,14 @@ function UploadComponent() {
   const [uploadStatus, setUploadStatus] = useState('');
   const [presignedUrl, setPresignedUrl] = useState('');
   const [jsonToComfy, setJsonToComfy] = useState(null); // Assuming you set this state somewhere in your component
+
+  const [imageUrl, setImageUrl] = useState('');
+
+  // State for storing the response from Comfy
+  const [comfyResponse, setComfyResponse] = useState(null);
+
+  // State for storing the output filename
+  const [outputFilename, setOutputFilename] = useState('');
 
   const handleFileChange = (event) => {
     const selectedFile = event.target.files[0];
@@ -113,46 +124,59 @@ function UploadComponent() {
     };
   };
 
+  // Function to fetch history using prompt_id and display the output filename
+  const fetchHistoryAndDisplayFilename = async (promptId) => {
+    try {
+      const response = await axios.get(`/proxy-history/${promptId}`);
+      // Alerting the response data for debugging
+      // alert(JSON.stringify(response.data, null, 2));
+  
+      // The history data seems to be keyed by the promptId, so we access it accordingly
+      const historyData = response.data[promptId];
+  
+      // Now we can attempt to find the outputs within this specific history data
+      const outputs = historyData && historyData.outputs ? historyData.outputs : null;
+  
+      let filename = '';
+      if (outputs) {
+        for (const key in outputs) {
+          if (outputs[key].images && outputs[key].images.length > 0) {
+            filename = outputs[key].images[0].filename; // Grab the first filename
+            break;
+          }
+        }
+      }
+  
+      if (filename) {
+        setOutputFilename(filename); // Update state with the filename
+        
+        // Assuming 'http://134.215.109.213:44363' is your Comfy server's base URL
+        const imageUrl = `http://134.215.109.213:44363/view?filename=${filename}`;
+        setImageUrl(imageUrl); // Set image URL state
+      } else {
+        alert('No output filename found.');
+      }
+    } catch (error) {
+      console.error('Error fetching history:', error);
+      alert('Failed to fetch history data.');
+    }
+  };
   
   const sendDataToComfy = async () => {
     const jsonToComfy = createJsonToComfy(presignedUrl);
-    const jsonToComfyStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(jsonToComfy));
-    alert(jsonToComfyStr);
-
     const endpoint = "/proxy-prompt";
+
     try {
-//      const response = await axios.post(endpoint, jsonToComfy, {
-//        headers: {
-//          'Content-Type': 'application/json'
-//        }
-//      });
-      const response = await axios.post(endpoint, jsonToComfy);
-      console.log('Response from Comfy:', response.data);
-      alert('Data sent to Comfy successfully.');
+      const response = await axios.post('/proxy-prompt', jsonToComfy, {
+        headers: { 'Content-Type': 'application/json' }
+      });
+      setComfyResponse(response.data); // Store the Comfy response
+      setUploadStatus('Data sent to Comfy successfully.');
     } catch (error) {
-      console.error('BRUCE Error sending data to Comfy:', error);
-      alert('Failed to send data to Comfy - Bruce 1');
-      alert(error);
-      alert('End Error - Bruce 2');
+      console.error('Error sending data to Comfy:', error);
+      setUploadStatus('Failed to send data to Comfy.');
     }
   };
-
-  /*
-  const sendJsonToComfyUI = async (jsonToComfy) => {
-    try {
-//      const res = await axios.post('http://127.0.0.1:8188/prompt',{
-//      	prompt:json_data_object	
-//      });
-      const comfyUIEndpoint = 'https://134.215.109.213:44319/prompt'; // Update with the actual endpoint
-      await axios.post(comfyUIEndpoint, jsonToComfy, {
-        headers: { 'Content-Type': 'application/json' },
-        httpsAgent: new https.Agent({ rejectUnauthorized: false }), // Bypass SSL certificate validation - use with caution
-      });
-      console.log('JSON sent to ComfyUI server successfully.');
-    } catch (error) {
-      console.error('Error sending JSON to ComfyUI:', error);
-    }
-  }; */
 
   const downloadJson = () => {
     // const jsonToDownload = { fileUrl, presignedUrl }; // Adjust this object as needed for your requirements
@@ -171,12 +195,61 @@ function UploadComponent() {
       <input type="file" onChange={handleFileChange} />
       <button onClick={handleUpload}>Upload</button>
       {uploadStatus && <p>{uploadStatus}</p>}
-      {presignedUrl && <>
-      <button onClick={downloadJson}>Download JSON</button>
-      <p><a href={presignedUrl} target="_blank" rel="noopener noreferrer">Access File Directly</a></p>
-      <button onClick={sendDataToComfy}>Send to Comfy</button> {/* New button for sending data */}
-      </>}
+      {presignedUrl && (
+        <>
+          <button onClick={downloadJson}>Download JSON</button>
+          <button onClick={sendDataToComfy}>Send to Comfy</button>
+          {comfyResponse && (
+            <div>
+              <h3>Response from Comfy:</h3>
+              <p>Prompt ID: {comfyResponse.prompt_id}</p>
+              <p>Number: {comfyResponse.number}</p>
+              {/* Render other data as needed */}
+            </div>
+          )}
+          {comfyResponse && comfyResponse.prompt_id && (
+            <button onClick={() => fetchHistoryAndDisplayFilename(comfyResponse.prompt_id)}>
+              Get Output Filename
+            </button>
+          )}
+          {outputFilename && <p>Output Filename: {outputFilename}</p>}
+        </>
+      )}
+      {/* Display the image if the URL is available */}
+      {imageUrl && <img src={imageUrl} alt="Output from Comfy" />}
     </div>
+  );
+  
+  return (
+    <div>
+      <input type="file" onChange={handleFileChange} />
+      <button onClick={handleUpload}>Upload</button>
+      {uploadStatus && <p>{uploadStatus}</p>}
+
+      {presignedUrl && (
+        <>
+          <button onClick={downloadJson}>Download JSON</button>
+          <button onClick={sendDataToComfy}>Send to Comfy</button>
+          {comfyResponse && (
+            <div>
+              <h3>Response from Comfy:</h3>
+              <p>Prompt ID: {comfyResponse.prompt_id}</p>
+              <p>Number: {comfyResponse.number}</p>
+              {/* You can render other data from the response here */}
+            </div>
+          )}
+        </>
+      )}
+
+      {comfyResponse && comfyResponse.prompt_id && (
+        <button onClick={() => fetchHistoryAndDisplayFilename(comfyResponse.prompt_id)}>
+          Get Output Filename
+        </button>
+      )}
+      {outputFilename && <p>Output Filename: {outputFilename}</p>}
+    </div>
+
+    
   );
 }
 

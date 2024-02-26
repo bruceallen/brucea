@@ -1,3 +1,6 @@
+// BRUCE SERVER.JS - 2024.02.25 - works to send to ComfyUI YAAY
+// now gonna work on getting stuff back!
+
 require('dotenv').config();
 const express = require('express');
 const axios = require('axios'); 
@@ -111,6 +114,10 @@ app.get('/generate-presigned-url', async (req, res) => {
     }
 });
 
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'client/build/index.html'));
+});
+
 // Proxy endpoint
 app.post('/proxy-prompt', async (req, res) => {
     const externalApiUrl = 'http://134.215.109.213:44363/prompt';
@@ -145,58 +152,6 @@ app.post('/proxy-prompt', async (req, res) => {
         res.status(500).json({ message: error.message });
       }
     }
-});
-
-/*
-// Server-side: Add a new route in server.js for fetching history
-app.get('/proxy-history/:uid', async (req, res) => {
-    const uid = req.params.uid;
-    const historyUrl = `http://134.215.109.213:44363/history/${uid}`;
-
-    try {
-      const response = await axios.get(historyUrl, {
-        headers: {
-          'Content-Type': 'application/json',
-          // Add any other necessary headers here
-        },
-      });
-
-      res.json(response.data);
-    } catch (error) {
-      if (error.response) {
-        res.status(error.response.status).json(error.response.data);
-      } else if (error.request) {
-        res.status(500).json({ message: 'No response received from Comfy API' });
-      } else {
-        res.status(500).json({ message: error.message });
-      }
-    }
-});*/
-
-app.get('/proxy-history/:uid', async (req, res) => {
-    const uid = req.params.uid;
-    const historyUrl = `http://134.215.109.213:44363/history/${uid}`;
-    console.log(`Fetching history for UID: ${uid}`);
-    console.log(`Constructed history URL: ${historyUrl}`);
-
-    try {
-        const response = await axios.get(historyUrl);
-        console.log('History response:', response.data);
-
-        // Process the response to extract the necessary information
-        // For example, extract the output filename
-    //    const outputFilename = extractFilename(response.data); // Implement this based on the actual response structure
-
-        // Send the relevant data back to the client
-        res.json(response.data);
-    } catch (error) {
-        console.error('Error fetching history:', error);
-        res.status(500).json({ success: false, message: 'Failed to fetch history.' });
-    }
-});
-
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'client/build/index.html'));
 });
 
 
