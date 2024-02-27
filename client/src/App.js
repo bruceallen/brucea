@@ -36,7 +36,10 @@ function App() {
     <div className="App">
       <header className="App-header">
         <p>
-          BRUCE TEST 2024.02.26 B
+          BRUCE TEST 2024.02.26B
+        </p>
+        <p className="mediumText">
+          currently serving you 768x768 pixel depth maps on a remote RTX 4090
         </p>
         <UploadComponent />
       </header>
