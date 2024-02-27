@@ -4,6 +4,47 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { CircularProgress } from '@mui/material'; // Import MUI CircularProgress for loading spinner
 
+// ---
+
+function calculateBestProjectResolution(width, height) {
+  // Ensure the total pixel count is less than or equal to 1024x1024
+  if (width * height <= 1024 * 1024) {
+      console.log('scaling up');
+//      return { width, height }; // If it's already compliant, return original
+  }
+
+  // Calculate the aspect ratio
+  const aspectRatio = width / height;
+
+  // Calculate the new dimensions
+  let newWidth = Math.sqrt((1024 * 1024) * aspectRatio);
+  let newHeight = 1024 * 1024 / newWidth;
+
+  // Ensure dimensions are multiples of 32
+  newWidth = Math.floor(newWidth / 32) * 32;
+  newHeight = Math.floor(newHeight / 32) * 32;
+
+  // Adjust one dimension if necessary to maintain aspect ratio
+  // This could happen if rounding down changes the ratio
+  if (Math.abs((newWidth / newHeight) - aspectRatio) > 0.01) { // Allowing slight deviation
+      if (newWidth / newHeight > aspectRatio) {
+          // Width is too large
+          newWidth = newHeight * aspectRatio;
+          newWidth = Math.floor(newWidth / 32) * 32; // Ensure multiple of 32
+      } else {
+          // Height is too large
+          newHeight = newWidth / aspectRatio;
+          newHeight = Math.floor(newHeight / 32) * 32; // Ensure multiple of 32
+      }
+  }
+
+  console.log('best X', newWidth);
+  console.log('best Y', newHeight);
+
+  return { width: newWidth, height: newHeight };
+}
+
+// ---
 
 function UploadComponent() {
   const [file, setFile] = useState(null);
@@ -18,6 +59,18 @@ function UploadComponent() {
   const [outputFilename, setOutputFilename] = useState('');
   const [secondsElapsed, setSecondsElapsed] = useState(0);
 
+  const [originalWidth, setOriginalWidth] = useState(0);
+  const [originalHeight, setOriginalHeight] = useState(0);
+  const [bestWidth, setBestWidth] = useState(0);
+  const [bestHeight, setBestHeight] = useState(0);
+
+  const [resX, setResX] = useState(1024);
+  const [resY, setResY] = useState(1024);
+
+  useEffect(() => {
+    console.log('Updated resolution:', resX, 'x', resY);
+  }, [resX, resY]);
+
   // some kind of callback hack to make everything work right
   const handleUpload = useCallback(async () => {
     if (!file) {
@@ -25,10 +78,10 @@ function UploadComponent() {
       return;
     }
 
-    setIsLoadingUpload(true);
+    setIsLoadingUpload(true); // Show loading indicator
 
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', file); // Append file to form data
 
     try {
       const response = await fetch('/upload', {
@@ -43,8 +96,14 @@ function UploadComponent() {
       const result = await response.json();
       if (result.success) {
         setUploadStatus('File uploaded successfully.');
-        setIsLoadingUpload(false);
-        setFileUrl(result.fileUrl);
+        setIsLoadingUpload(false); // Hide loading indicator
+        setFileUrl(result.fileUrl); // Set the URL of the uploaded file
+
+        setOriginalWidth(result.resolutionX);
+        setOriginalHeight(result.resolutionY);
+
+        setResX(result.resolutionX); 
+        setResY(result.resolutionY); 
         fetchPresignedUrl(result.fileUrl.split('/').pop());
       } else {
         setUploadStatus('Upload failed: ' + result.message);
@@ -140,8 +199,8 @@ function UploadComponent() {
         },
         "16": {
           "inputs": {
-            "width": 768,
-            "height": 768,
+            "width": resX,
+            "height": resY,
             "interpolation": "bicubic",
             "keep_proportion": true,
             "condition": "only if bigger",
@@ -216,8 +275,20 @@ function UploadComponent() {
   };
 
   const sendDataToComfy = async () => {
+
     setIsImageProcessing(true);
     setSecondsElapsed(0);
+
+    console.log('Calculating best resolution');
+    const {width, height} = calculateBestProjectResolution(resX, resY);
+    console.log('Best resolution:', width, 'x', height);
+
+    setResX(width);
+    setResY(height);
+
+    console.log('new X', resX);
+    console.log('new Y', resY);
+
     const jsonToComfy = createJsonToComfy(presignedUrl);
 
     try {
@@ -238,7 +309,7 @@ function UploadComponent() {
     }
   };
 
-  async function pollForComfyProcessing(promptId, attempts = 0, maxAttempts = 15, interval = 1000) {
+  async function pollForComfyProcessing(promptId, attempts = 0, maxAttempts = 480, interval = 1000) {
     if (attempts >= maxAttempts) {
         setUploadStatus('Comfy processing has timed out.');
         setIsImageProcessing(false);
@@ -249,8 +320,10 @@ function UploadComponent() {
         const response = await fetch(`/proxy-history/${promptId}`);
         const data = await response.json();
         if (response.ok && Object.keys(data).length !== 0) { // Check if data is not an empty object
-            console.log('Comfy processing complete:', data);
+            console.log('Processing complete:', data);
+            console.log('Processing seconds elapsed:', attempts);
             setUploadStatus('Comfy processing complete.');
+  
             setIsImageProcessing(false);
             // Update your UI based on `data` here
             // For example, display the processed image and filename
@@ -258,7 +331,6 @@ function UploadComponent() {
         } else {
             // If data is empty, or response is not OK, consider processing as still ongoing
             setIsImageProcessing(true);
-            console.log('Comfy processing ongoing... seconds elapsed:', attempts);
             setSecondsElapsed(attempts);
             setTimeout(() => pollForComfyProcessing(promptId, attempts + 1), interval);
         }
@@ -293,6 +365,8 @@ function UploadComponent() {
 
   return (
     <div className="smallText">
+      <p>File URL: {fileUrl}</p>
+      <p>Project Resolution: {resX}x{resY}</p>
       <input type="file" onChange={handleFileChange} disabled={isLoadingUpload || isImageProcessing} />
       {uploadStatus && <p>{uploadStatus}</p>}
   
