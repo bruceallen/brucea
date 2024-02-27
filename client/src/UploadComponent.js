@@ -140,8 +140,6 @@ function UploadComponent() {
         setOriginalWidth(result.resolutionX);
         setOriginalHeight(result.resolutionY);
 
-        setResX(result.resolutionX); 
-        setResY(result.resolutionY); 
         fetchPresignedUrl(result.fileUrl.split('/').pop());
       } else {
         setUploadStatus('Upload failed: ' + result.message);
@@ -318,7 +316,7 @@ function UploadComponent() {
     setSecondsElapsed(0);
 
     console.log('Calculating best resolution');
-    const {width, height} = calculateBestProjectResolution(resX, resY);
+    const {width, height} = calculateBestProjectResolution(originalWidth, originalHeight);
     console.log('Best resolution:', width, 'x', height);
 
     setResX(width);
