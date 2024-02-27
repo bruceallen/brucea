@@ -12,6 +12,7 @@ const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
 const fetch = require('node-fetch'); // Make sure you have 'node-fetch' installed
+const sharp = require('sharp');
 
 const app = express();
 
@@ -47,6 +48,22 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'client/build')));
 
+/*
+async function checkImageResolution(filePath) {
+    try {
+        // Replace 'filePath' with the path to the image file in your 'uploads' directory
+        const metadata = await sharp(filePath).metadata();
+        const width = metadata.width;
+        const height = metadata.height;
+        console.log(`Image resolution: ${width}x${height}`);
+        // Here you can also add conditions to validate resolution before uploading to S3
+        return { width, height };
+    } catch (error) {
+        console.error('Error getting image resolution:', error);
+    }
+}
+*/
+
 // Upload endpoint
 app.post('/upload', upload.single('file'), async (req, res) => {
     if (!req.file) {
@@ -57,6 +74,11 @@ app.post('/upload', upload.single('file'), async (req, res) => {
     }
 
     const fileStream = fs.createReadStream(req.file.path);
+
+    const metadata = await sharp(req.file.path).metadata();
+    const width = metadata.width;
+    const height = metadata.height;
+    console.log(`Image resolution: ${width}x${height}`);
 
     const uploadParams = {
         Bucket: process.env.BUCKETEER_BUCKET_NAME,
@@ -74,6 +96,8 @@ app.post('/upload', upload.single('file'), async (req, res) => {
             message: 'File uploaded successfully',
             fileUrl: fileUrl,
             data: data,
+            resolutionX: metadata.width,
+            resolutionY: metadata.height, // Add the resolution to the response
         });
     } catch (err) {
         console.error('Error uploading file:', err);
@@ -102,6 +126,8 @@ app.get('/generate-presigned-url', async (req, res) => {
 
     try {
         const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 }); // URL expires in 1 hour
+     //   console.log('S3 presigned URL:', presignedUrl)
+
         res.json({
             success: true,
             presignedUrl: presignedUrl,
@@ -154,12 +180,12 @@ app.post('/proxy-prompt', async (req, res) => {
 app.get('/proxy-history/:uid', async (req, res) => {
     const uid = req.params.uid;
     const historyUrl = `http://134.215.109.213:44363/history/${uid}`;
-    console.log(`Fetching history for UID: ${uid}`);
-    console.log(`Constructed history URL: ${historyUrl}`);
+  //  console.log(`Fetching history for UID: ${uid}`);
+  //  console.log(`Constructed history URL: ${historyUrl}`);
 
     try {
         const response = await axios.get(historyUrl);
-        console.log('History response:', response.data);
+   //     console.log('History response:', response.data);
 
         // Process the response to extract the necessary information
         // For example, extract the output filename
