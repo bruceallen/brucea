@@ -1,8 +1,9 @@
-// BRUCE UPLOADCOMPONENT.JS - 2024.02.25 - works to send to ComfyUI YAAY
-// now gonna work on... A PROGRESS BAR
+// BRUCE UPLOADCOMPONENT.JS - 2024.02.26 - Now with Marigold Depth Estimation and seconds elapsed
 
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { CircularProgress } from '@mui/material'; // Import MUI CircularProgress for loading spinner
+
 
 function UploadComponent() {
   const [file, setFile] = useState(null);
@@ -12,9 +13,10 @@ function UploadComponent() {
   const [imageUrl, setImageUrl] = useState('');
   const [presignedUrl, setPresignedUrl] = useState('');
   const [isLoadingUpload, setIsLoadingUpload] = useState(false);
-  const [isLoadingComfy, setIsLoadingComfy] = useState(false);
+  const [isImageProcessing, setIsImageProcessing] = useState(false);
   const [comfyResponse, setComfyResponse] = useState(null);
   const [outputFilename, setOutputFilename] = useState('');
+  const [secondsElapsed, setSecondsElapsed] = useState(0);
 
   // some kind of callback hack to make everything work right
   const handleUpload = useCallback(async () => {
@@ -68,32 +70,8 @@ function UploadComponent() {
   //  setFileName(selectedFile.name); unused
   };
 
-  /*
-  // Function to check image availability
-  const checkImageAvailability = async (imageUrl, retryCount = 0) => {
-    try {
-      const response = await fetch(imageUrl, { method: 'HEAD' });
-      if (response.ok) {
-        // Image is available
-        setImageUrl(imageUrl); // Set image URL state
-        setIsLoadingComfy(false); // Update loading state
-        setUploadStatus('Image processing complete.');
-      } else {
-        throw new Error('Image not available yet');
-      }
-    } catch (error) {
-      if (retryCount < 10) { // Retry up to 5 times
-        setTimeout(() => checkImageAvailability(imageUrl, retryCount + 1), 1000); // Wait 2 seconds before retrying
-        setUploadStatus('retry count:', retryCount);
-      } else {
-        setIsLoadingComfy(false); // Update loading state
-        setUploadStatus('Failed to process image with Comfy.');
-      }
-    }
-  };*/
-
   const checkImageAvailability = async (imageUrl) => {
-    setIsLoadingComfy(true); // Start loading state
+    setIsImageProcessing(true); // Start loading state
   
     try {
       // Use the proxy endpoint for CORS
@@ -102,17 +80,17 @@ function UploadComponent() {
   
       if (data.success) {
         setImageUrl(imageUrl); // Image is available, set image URL state
-        setIsLoadingComfy(false); // End loading state
+        setIsImageProcessing(false); // End loading state
         setUploadStatus('Image processing complete.');
       } else {
         // Retry or handle image not available yet
-        setIsLoadingComfy(false); // Optionally keep loading state if retrying
+        setIsImageProcessing(true); // Optionally keep loading state if retrying
         setUploadStatus('Waiting for image...');
         // Optionally implement a retry mechanism here
       }
     } catch (error) {
       console.error('Error checking image availability:', error);
-      setIsLoadingComfy(false); // End loading state
+      setIsImageProcessing(false); // End loading state
       setUploadStatus('Failed to check image availability.');
     }
   };
@@ -227,35 +205,79 @@ function UploadComponent() {
         const imageUrl = `http://134.215.109.213:44363/view?filename=${filename}`;
         checkImageAvailability(imageUrl); // Check if the image is available before showing it
       } else {
-        setIsLoadingComfy(false); // Update loading state
+        setIsImageProcessing(false); // Update loading state
         alert('No output filename found.');
       }
     } catch (error) {
       console.error('Error fetching history:', error);
-      setIsLoadingComfy(false); // Update loading state
+      setIsImageProcessing(false); // Update loading state
       alert('Failed to fetch history data.');
     }
   };
 
   const sendDataToComfy = async () => {
-    console.log("sendDataToComfy started"); // Debugging line
-    setIsLoadingComfy(true);
+    setIsImageProcessing(true);
+    setSecondsElapsed(0);
     const jsonToComfy = createJsonToComfy(presignedUrl);
-  
+
     try {
       const response = await axios.post('/proxy-prompt', jsonToComfy, {
         headers: { 'Content-Type': 'application/json' }
       });
-      console.log("Data sent to Comfy successfully."); // Debugging line
-      setComfyResponse(response.data);
+      setComfyResponse(response.data); // Store the Comfy response
       setUploadStatus('Data sent to Comfy successfully.');
+      // Start polling for the history information after sending data to Comfy
+      if (response.data && response.data.prompt_id) {
+        pollForComfyProcessing(response.data.prompt_id);
+      }
     } catch (error) {
       console.error('Error sending data to Comfy:', error);
       setUploadStatus('Failed to send data to Comfy.');
     } finally {
-      setIsLoadingComfy(false);
+      setIsImageProcessing(false);
     }
   };
+
+  async function pollForComfyProcessing(promptId, attempts = 0, maxAttempts = 15, interval = 1000) {
+    if (attempts >= maxAttempts) {
+        setUploadStatus('Comfy processing has timed out.');
+        setIsImageProcessing(false);
+        return;
+    }
+
+    try {
+        const response = await fetch(`/proxy-history/${promptId}`);
+        const data = await response.json();
+        if (response.ok && Object.keys(data).length !== 0) { // Check if data is not an empty object
+            console.log('Comfy processing complete:', data);
+            setUploadStatus('Comfy processing complete.');
+            setIsImageProcessing(false);
+            // Update your UI based on `data` here
+            // For example, display the processed image and filename
+            fetchHistoryAndDisplayFilename(promptId); // This will set the image URL and output filename
+        } else {
+            // If data is empty, or response is not OK, consider processing as still ongoing
+            setIsImageProcessing(true);
+            console.log('Comfy processing ongoing... seconds elapsed:', attempts);
+            setSecondsElapsed(attempts);
+            setTimeout(() => pollForComfyProcessing(promptId, attempts + 1), interval);
+        }
+    } catch (error) {
+        console.error('Error checking Comfy processing status:', error);
+        alert(`Error checking Comfy processing status: ${error}`);
+        if (attempts < maxAttempts) {
+            setTimeout(() => pollForComfyProcessing(promptId, attempts + 1), interval);
+        } else {
+            setUploadStatus('Failed to check Comfy processing status.');
+            setIsImageProcessing(false);
+        }
+    }
+  };
+  
+// - END NEW
+  
+
+
 
   const downloadJson = () => {
     // const jsonToDownload = { fileUrl, presignedUrl }; // Adjust this object as needed for your requirements
@@ -270,17 +292,14 @@ function UploadComponent() {
   };
 
   return (
-    <div>
-      <input type="file" onChange={handleFileChange} disabled={isLoadingUpload || isLoadingComfy} />
-      {isLoadingUpload && <div className="spinner"></div>}
-      {isLoadingUpload && <p>Loading...</p>}
-      {isLoadingComfy && <p>Processing with Comfy...</p>}
+    <div className="smallText">
+      <input type="file" onChange={handleFileChange} disabled={isLoadingUpload || isImageProcessing} />
       {uploadStatus && <p>{uploadStatus}</p>}
   
       {presignedUrl && (
         <>
           <button onClick={downloadJson}>Download JSON</button>
-          <button onClick={sendDataToComfy} disabled={isLoadingUpload || isLoadingComfy}>Send to Comfy</button>
+          <button onClick={sendDataToComfy} disabled={isLoadingUpload || isImageProcessing}>Send to Comfy</button>
           {comfyResponse && (
             <div>
               <h3>Response from Comfy:</h3>
@@ -289,16 +308,32 @@ function UploadComponent() {
               {/* Render other data as needed */}
             </div>
           )}
-          {comfyResponse && comfyResponse.prompt_id && (
-            <button onClick={() => fetchHistoryAndDisplayFilename(comfyResponse.prompt_id)}>
-              Get Output Filename
-            </button>
-          )}
           {outputFilename && <p>Output Filename: {outputFilename}</p>}
         </>
       )}
-      {/* Display the image if the URL is available and Comfy processing is not loading */}
-      {!isLoadingComfy && imageUrl && <img src={imageUrl} alt="Output from Comfy" />}
+
+      {/* Upload loading indicator */}
+      {isLoadingUpload && (
+        <div>
+          <CircularProgress /> {/* Show a spinner during file upload */}
+          <p>Uploading file...</p>
+        </div>
+      )}
+
+      {/* Comfy processing loading indicator */}
+      {isImageProcessing && (
+        <div>
+          <CircularProgress /> {/* Show a spinner during Comfy processing */}
+          <p>Processing image with Comfy...</p>
+          <p>Seconds Elapsed: {secondsElapsed}</p>
+        </div>
+      )}
+
+      {/* Display upload status */}
+      <p>{uploadStatus}</p>
+
+      {/* Output image if available */}
+      {imageUrl && <img src={imageUrl} alt="Processed" />}
     </div>
   );
 }
