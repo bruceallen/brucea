@@ -137,7 +137,79 @@ function UploadComponent() {
 
   const createJsonToComfy = (presignedUrl) => {
     return {
+    // JSON test
+      "prompt": {
+
+      {
+        "9": {
+          "inputs": {
+            "filename_prefix": "ComfyUI",
+            "images": [
+              "17",
+              0
+            ]
+          },
+          "class_type": "SaveImage",
+          "_meta": {
+            "title": "Save Image"
+          }
+        },
+        "10": {
+          "inputs": {
+            "url": presignedUrl
+          },
+          "class_type": "LoadImageByUrl //Browser",
+          "_meta": {
+            "title": "Load Image By URL"
+          }
+        },
+        "16": {
+          "inputs": {
+            "width": 768,
+            "height": 768,
+            "interpolation": "bicubic",
+            "keep_proportion": true,
+            "condition": "only if bigger",
+            "image": [
+              "10",
+              0
+            ]
+          },
+          "class_type": "ImageResize+",
+          "_meta": {
+            "title": "🔧 Image Resize"
+          }
+        },
+        "17": {
+          "inputs": {
+            "seed": 123,
+            "denoise_steps": 10,
+            "n_repeat": 10,
+            "regularizer_strength": 0.02,
+            "reduction_method": "median",
+            "max_iter": 5,
+            "tol": 0.001,
+            "invert": true,
+            "keep_model_loaded": true,
+            "n_repeat_batch_size": 2,
+            "use_fp16": true,
+            "scheduler": "DDIMScheduler",
+            "normalize": true,
+            "image": [
+              "16",
+              0
+            ]
+          },
+          "class_type": "MarigoldDepthEstimation",
+          "_meta": {
+            "title": "MarigoldDepthEstimation"
+          }
+        }
+      }
+
+    }
     // Modify this function to match your JSON structure
+    /*
       "prompt": {
         
 
@@ -197,6 +269,7 @@ function UploadComponent() {
 
 
       }
+      */
     };
   };
   
