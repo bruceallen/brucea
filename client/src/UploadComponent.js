@@ -236,7 +236,7 @@ function UploadComponent() {
     console.log('new X', resX);
     console.log('new Y', resY);
 
-    const jsonToComfy = createJsonToComfy(presignedUrl, resolutionX, resolutionY, 1);
+    const jsonToComfy = createJsonToComfy(presignedUrl, resX, resY, 1);
 
     const jsonString = JSON.stringify(jsonToComfy);
 
