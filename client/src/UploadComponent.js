@@ -6,9 +6,47 @@ import { CircularProgress } from '@mui/material'; // Import MUI CircularProgress
 
 // ---
 
-function calculateBestProjectResolution(width, height) {
+function calculateBestSDXLProjectResolution(width, height) {
   // Ensure the total pixel count is less than or equal to 1024x1024
   if (width * height <= 1024 * 1024) {
+      console.log('scaling up');
+//      return { width, height }; // If it's already compliant, return original
+  }
+
+  // Calculate the aspect ratio
+  const aspectRatio = width / height;
+
+  // Calculate the new dimensions
+  let newWidth = Math.sqrt((1024 * 1024) * aspectRatio);
+  let newHeight = 1024 * 1024 / newWidth;
+
+  // Ensure dimensions are multiples of 32
+  newWidth = Math.floor(newWidth / 32) * 32;
+  newHeight = Math.floor(newHeight / 32) * 32;
+
+  // Adjust one dimension if necessary to maintain aspect ratio
+  // This could happen if rounding down changes the ratio
+  if (Math.abs((newWidth / newHeight) - aspectRatio) > 0.01) { // Allowing slight deviation
+      if (newWidth / newHeight > aspectRatio) {
+          // Width is too large
+          newWidth = newHeight * aspectRatio;
+          newWidth = Math.floor(newWidth / 32) * 32; // Ensure multiple of 32
+      } else {
+          // Height is too large
+          newHeight = newWidth / aspectRatio;
+          newHeight = Math.floor(newHeight / 32) * 32; // Ensure multiple of 32
+      }
+  }
+
+  console.log('best X', newWidth);
+  console.log('best Y', newHeight);
+
+  return { width: newWidth, height: newHeight };
+}
+
+function calculateBestProjectResolution(width, height) {
+  // Ensure the total pixel count is less than or equal to 1024x1024
+  if (width * height <= 768 * 768) {
       console.log('scaling up');
 //      return { width, height }; // If it's already compliant, return original
   }
@@ -225,7 +263,7 @@ function UploadComponent() {
             "tol": 0.001,
             "invert": true,
             "keep_model_loaded": true,
-            "n_repeat_batch_size": 2,
+            "n_repeat_batch_size": 1,
             "use_fp16": true,
             "scheduler": "DDIMScheduler",
             "normalize": true,
