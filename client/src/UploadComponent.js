@@ -137,9 +137,7 @@ function UploadComponent() {
 
   const createJsonToComfy = (presignedUrl) => {
     return {
-    // JSON test
       "prompt": {
-        
         "9": {
           "inputs": {
             "filename_prefix": "ComfyUI",
@@ -204,67 +202,6 @@ function UploadComponent() {
             "title": "MarigoldDepthEstimation"
           }
         }
-      }
-    // Modify this function to match your JSON structure
-    /*
-      "prompt": {
-        
-
-        "9": {
-          "inputs": {
-            "filename_prefix": "ComfyUI",
-            "images": [
-              "15",
-              0
-            ]
-          },
-          "class_type": "SaveImage",
-          "_meta": {
-            "title": "Save Image"
-          }
-        },
-        "10": {
-          "inputs": {
-            "url": presignedUrl
-          },
-          "class_type": "LoadImageByUrl //Browser",
-          "_meta": {
-            "title": "Load Image By URL"
-          }
-        },
-        "15": {
-          "inputs": {
-            "blur_radius": 10,
-            "sigma": 1,
-            "image": [
-              "16",
-              0
-            ]
-          },
-          "class_type": "Blur",
-          "_meta": {
-            "title": "Blur"
-          }
-        },
-        "16": {
-          "inputs": {
-            "width": 2048,
-            "height": 2048,
-            "interpolation": "bicubic",
-            "keep_proportion": true,
-            "condition": "only if bigger",
-            "image": [
-              "10",
-              0
-            ]
-          },
-          "class_type": "ImageResize+",
-          "_meta": {
-            "title": "Image Resize"
-          }
-        }*/
-
-
       }
     };
   };
