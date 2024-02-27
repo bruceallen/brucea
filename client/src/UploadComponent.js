@@ -1,4 +1,5 @@
 // BRUCE UPLOADCOMPONENT.JS - 2024.02.26 - Now with Marigold Depth Estimation and seconds elapsed
+// TODO: handle .HEIF files
 
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
@@ -6,9 +7,9 @@ import { CircularProgress } from '@mui/material'; // Import MUI CircularProgress
 
 // ---
 
-function calculateBestSDXLProjectResolution(width, height) {
+function calculateBestProjectResolution(width, height, base=1024) {
   // Ensure the total pixel count is less than or equal to 1024x1024
-  if (width * height <= 1024 * 1024) {
+  if (width * height <= base * base) {
       console.log('scaling up');
 //      return { width, height }; // If it's already compliant, return original
   }
@@ -17,46 +18,8 @@ function calculateBestSDXLProjectResolution(width, height) {
   const aspectRatio = width / height;
 
   // Calculate the new dimensions
-  let newWidth = Math.sqrt((1024 * 1024) * aspectRatio);
-  let newHeight = 1024 * 1024 / newWidth;
-
-  // Ensure dimensions are multiples of 32
-  newWidth = Math.floor(newWidth / 32) * 32;
-  newHeight = Math.floor(newHeight / 32) * 32;
-
-  // Adjust one dimension if necessary to maintain aspect ratio
-  // This could happen if rounding down changes the ratio
-  if (Math.abs((newWidth / newHeight) - aspectRatio) > 0.01) { // Allowing slight deviation
-      if (newWidth / newHeight > aspectRatio) {
-          // Width is too large
-          newWidth = newHeight * aspectRatio;
-          newWidth = Math.floor(newWidth / 32) * 32; // Ensure multiple of 32
-      } else {
-          // Height is too large
-          newHeight = newWidth / aspectRatio;
-          newHeight = Math.floor(newHeight / 32) * 32; // Ensure multiple of 32
-      }
-  }
-
-  console.log('best X', newWidth);
-  console.log('best Y', newHeight);
-
-  return { width: newWidth, height: newHeight };
-}
-
-function calculateBestProjectResolution(width, height) {
-  // Ensure the total pixel count is less than or equal to 1024x1024
-  if (width * height <= 768 * 768) {
-      console.log('scaling up');
-//      return { width, height }; // If it's already compliant, return original
-  }
-
-  // Calculate the aspect ratio
-  const aspectRatio = width / height;
-
-  // Calculate the new dimensions
-  let newWidth = Math.sqrt((1024 * 1024) * aspectRatio);
-  let newHeight = 1024 * 1024 / newWidth;
+  let newWidth = Math.sqrt((base * base) * aspectRatio);
+  let newHeight = base * base / newWidth;
 
   // Ensure dimensions are multiples of 32
   newWidth = Math.floor(newWidth / 32) * 32;
@@ -253,15 +216,15 @@ function UploadComponent() {
         "17": {
           "inputs": {
             "seed": 123,
-            "denoise_steps": 10,
-            "n_repeat": 10,
+            "denoise_steps": 8,
+            "n_repeat": 4,
             "regularizer_strength": 0.02,
             "reduction_method": "median",
             "max_iter": 5,
             "tol": 0.001,
             "invert": true,
             "keep_model_loaded": true,
-            "n_repeat_batch_size": 1,
+            "n_repeat_batch_size": 4,
             "use_fp16": true,
             "scheduler": "DDIMScheduler",
             "normalize": true,
@@ -326,6 +289,11 @@ function UploadComponent() {
     console.log('new Y', resY);
 
     const jsonToComfy = createJsonToComfy(presignedUrl);
+
+    const jsonString = JSON.stringify(jsonToComfy);
+
+    // Log the JSON string to console or any other logging mechanism you prefer
+    console.log("JSON being sent:", jsonString);
 
     try {
       const response = await axios.post('/proxy-prompt', jsonToComfy, {

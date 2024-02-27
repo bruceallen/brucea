@@ -13,6 +13,7 @@ const path = require('path');
 const cors = require('cors');
 const fetch = require('node-fetch'); // Make sure you have 'node-fetch' installed
 const sharp = require('sharp');
+const { stringify } = require('querystring');
 
 const app = express();
 
@@ -144,7 +145,10 @@ app.get('/generate-presigned-url', async (req, res) => {
 // Proxy endpoint
 app.post('/proxy-prompt', async (req, res) => {
     const externalApiUrl = 'http://134.215.109.213:44363/prompt';
-  
+
+    console.log(`SENT: ${stringify(req.body)}`);
+
+    
     try {
       // Forward the request to the external API
       const response = await axios.post(externalApiUrl, req.body, {
