@@ -15,6 +15,14 @@ const fetch = require('node-fetch'); // Make sure you have 'node-fetch' installe
 const sharp = require('sharp');
 const { stringify } = require('querystring');
 
+const { Upload } = require('@aws-sdk/lib-storage');
+
+// Additional required module for image downloading
+// const { default: axios } = require('axios');
+// const stream = require('stream');
+// const { promisify } = require('util');
+// This utility function helps to stream the image data
+// const pipeline = promisify(stream.pipeline);
 //const imageType = require('image-type');
 
 const app = express();
@@ -51,22 +59,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'client/build')));
 
-/*
-async function checkImageResolution(filePath) {
-    try {
-        // Replace 'filePath' with the path to the image file in your 'uploads' directory
-        const metadata = await sharp(filePath).metadata();
-        const width = metadata.width;
-        const height = metadata.height;
-        console.log(`Image resolution: ${width}x${height}`);
-        // Here you can also add conditions to validate resolution before uploading to S3
-        return { width, height };
-    } catch (error) {
-        console.error('Error getting image resolution:', error);
-    }
-}
-*/
-
 // Upload endpoint
 app.post('/upload', upload.single('file'), async (req, res) => {
     if (!req.file) {
@@ -77,21 +69,7 @@ app.post('/upload', upload.single('file'), async (req, res) => {
     }
     
     const fileStream = fs.createReadStream(req.file.path);
-
-    /*
-    const type = imageType(fileStream);
-    if (type && type.mime === 'image/jpeg') {
-        // Proceed with your logic for JPEG files
-    } else {
-        // Handle non-JPEG files
-        res.status(400).send('Unsupported file type. Please upload a JPEG image.');
-    }
-    */
-
     const metadata = await sharp(req.file.path).metadata();
-    const width = metadata.width;
-    const height = metadata.height;
-    console.log(`Image resolution: ${width}x${height}`);
 
     const uploadParams = {
         Bucket: process.env.BUCKETEER_BUCKET_NAME,
@@ -235,6 +213,104 @@ app.get('/check-image-availability', async (req, res) => {
       res.status(500).json({ success: false, message: 'Error checking image availability.' });
     }
 });
+
+// New endpoint for posting an image from an external URL
+app.post('/post-image', async (req, res) => {
+    const { imageUrl } = req.body; // Expecting { imageUrl: 'http://example.com/image.jpg' }
+    
+    if (!imageUrl) {
+        return res.status(400).json({ success: false, message: 'Image URL is required.' });
+    }
+
+    try {
+        // Stream the image from the external URL
+        const response = await axios({
+            method: 'get',
+            url: imageUrl,
+            responseType: 'stream',
+        });
+
+        // Generate a unique filename for the S3 bucket based on the current timestamp and potential file extension
+        const filename = `image-${Date.now()}${path.extname(imageUrl) || '.jpg'}`;
+
+        // Prepare the parameters for the Upload class
+        const upload = new Upload({
+            client: s3Client,
+            params: {
+                Bucket: process.env.BUCKETEER_BUCKET_NAME,
+                Key: filename,
+                Body: response.data,
+                ContentType: response.headers['content-type'],
+   //             ACL: 'public-read', // Ensure the file is publicly readable
+            },
+        });
+
+        // Upload the image stream to S3
+        const result = await upload.done();
+
+        // Respond with the URL of the uploaded image
+        res.json({
+            success: true,
+            message: 'Image uploaded successfully',
+            imageUrl: result.Location, // Use the location from the result
+        });
+    } catch (error) {
+        console.error('Error posting image:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to post image.',
+            error: error.message, // Provide the error message for debugging
+        });
+    }
+});
+
+/*
+app.post('/post-image', async (req, res) => {
+    const { imageUrl } = req.body; // Expecting { imageUrl: 'http://example.com/image.jpg' }
+    
+    if (!imageUrl) {
+        return res.status(400).json({ success: false, message: 'Image URL is required.' });
+    }
+
+    try {
+        // Stream the image from the external URL
+        const response = await axios({
+            method: 'get',
+            url: imageUrl,
+            responseType: 'stream',
+        });
+
+        // Generate a unique filename for the S3 bucket based on the current timestamp and potential file extension
+        const filename = `image-${Date.now()}${path.extname(imageUrl) || '.jpg'}`;
+        const s3Params = {
+            Bucket: process.env.BUCKETEER_BUCKET_NAME,
+            Key: filename,
+            Body: response.data,
+            ContentType: response.headers['content-type'],
+            ACL: 'public-read', // Ensure the file is publicly readable
+        };
+
+        // Upload the image stream to S3
+        await s3Client.send(new PutObjectCommand(s3Params));
+
+        // Construct the URL of the uploaded image
+        const uploadedImageUrl = `https://${process.env.BUCKETEER_BUCKET_NAME}.s3.${process.env.BUCKETEER_AWS_REGION}.amazonaws.com/${filename}`;
+
+        // Respond with the URL of the uploaded image
+        res.json({
+            success: true,
+            message: 'Image uploaded successfully',
+            imageUrl: uploadedImageUrl,
+        });
+    } catch (error) {
+        console.error('Error posting image:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to post image.',
+        });
+    }
+});
+*/
 
 // This should be the last route
 app.get('*', (req, res) => {
