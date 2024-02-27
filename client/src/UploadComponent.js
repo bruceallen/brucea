@@ -139,8 +139,7 @@ function UploadComponent() {
     return {
     // JSON test
       "prompt": {
-
-      {
+        
         "9": {
           "inputs": {
             "filename_prefix": "ComfyUI",
@@ -206,8 +205,6 @@ function UploadComponent() {
           }
         }
       }
-
-    }
     // Modify this function to match your JSON structure
     /*
       "prompt": {
@@ -265,11 +262,10 @@ function UploadComponent() {
           "_meta": {
             "title": "Image Resize"
           }
-        }
+        }*/
 
 
       }
-      */
     };
   };
   
