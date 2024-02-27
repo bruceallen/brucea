@@ -1,4 +1,4 @@
-// BRUCE UPLOADCOMPONENT.JS - 2024.02.26 - Now with Marigold Depth Estimation and seconds elapsed
+// BRUCE UPLOADCOMPONENT.JS - 2024.02.26 - Now with Marigold Depth Estimation and seconds elapsed and JPEG filtering
 // TODO: handle .HEIF files
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -53,6 +53,8 @@ function UploadComponent() {
   // const [fileName, setFileName] = useState(''); unused
   const [uploadStatus, setUploadStatus] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [cachedResultImageUrl, setCachedResultImageUrl] = useState('');
+  const [cachedResultPresignedImageUrl, setCachedResultPresignedImageUrl] = useState('');
   const [presignedUrl, setPresignedUrl] = useState('');
   const [isLoadingUpload, setIsLoadingUpload] = useState(false);
   const [isImageProcessing, setIsImageProcessing] = useState(false);
@@ -67,6 +69,8 @@ function UploadComponent() {
 
   const [resX, setResX] = useState(1024);
   const [resY, setResY] = useState(1024);
+
+  const [s3ImageUrl, setS3ImageUrl] = useState('');
 
   useEffect(() => {
     console.log('Updated resolution:', resX, 'x', resY);
@@ -138,9 +142,41 @@ function UploadComponent() {
       const data = await response.json();
   
       if (data.success) {
-        setImageUrl(imageUrl); // Image is available, set image URL state
-        setIsImageProcessing(false); // End loading state
-        setUploadStatus('Image processing complete.');
+        console.log('checkImageAvailability IT IS READY TO COPY TO S3');
+        // -------- BEGIN S3
+        // Image is available, now upload it to S3
+        const s3Response = await fetch('/post-image', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ imageUrl }),
+        });
+        const s3Data = await s3Response.json();
+
+
+        if (s3Data.success) {
+            console.log('Image successfully uploaded to S3:', s3Data.imageUrl); 
+           //  const debugurl = JSON.stringify(s3Data);
+           //  console.log('got S3 data:', debugurl);    
+            // If the image has been successfully uploaded to S3, set the S3 image URL state
+            setCachedResultImageUrl(s3Data.imageUrl); // Update to use the S3 image URL
+            setIsImageProcessing(false); // End loading state
+            setUploadStatus('Image processing complete and uploaded to S3.');
+
+ 
+            fetchCachedResultPresignedImageUrl(s3Data.imageUrl.split('/').pop());
+            console.log('got RESULT S3 PRESIGNED URL:', cachedResultPresignedImageUrl);            
+//            cachedResultPresignedImageUrl
+        } else {
+            console.error('Failed to upload image to S3', s3Data.message);
+            setIsImageProcessing(false); // End loading state
+            setUploadStatus('Failed to upload image to S3.');
+        }
+        // -------- END S3
+        // setImageUrl(imageUrl); // Image is available, set image URL state
+        // setIsImageProcessing(false); // End loading state
+        // setUploadStatus('Image processing complete.');
       } else {
         // Retry or handle image not available yet
         setIsImageProcessing(true); // Optionally keep loading state if retrying
@@ -164,6 +200,24 @@ function UploadComponent() {
       const result = await response.json();
       if (result.success) {
         setPresignedUrl(result.presignedUrl);
+      } else {
+        console.error('Failed to get presigned URL:', result.message);
+      }
+    } catch (error) {
+      console.error('Error fetching presigned URL:', error);
+    }
+  };
+  
+  const fetchCachedResultPresignedImageUrl = async (fileName) => {
+    try {
+      const response = await fetch(`/generate-presigned-url?fileName=${encodeURIComponent(fileName)}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch presigned URL');
+      }
+
+      const result = await response.json();
+      if (result.success) {
+        setCachedResultPresignedImageUrl(result.presignedUrl);
       } else {
         console.error('Failed to get presigned URL:', result.message);
       }
@@ -243,9 +297,11 @@ function UploadComponent() {
     };
   };
   
+  
   // Adjusted function to fetch history and then check for image availability
   const fetchHistoryAndDisplayFilename = async (promptId) => {
     try {
+      // Fetching history data from your proxy service
       const response = await axios.get(`/proxy-history/${promptId}`);
       const historyData = response.data[promptId];
 
@@ -254,7 +310,7 @@ function UploadComponent() {
         for (const key in historyData.outputs) {
           if (historyData.outputs[key].images && historyData.outputs[key].images.length > 0) {
             filename = historyData.outputs[key].images[0].filename;
-            break;
+            break;  // Found the image, exit the loop
           }
         }
       }
@@ -262,11 +318,13 @@ function UploadComponent() {
       if (filename) {
         setOutputFilename(filename); // Update state with the filename
         const imageUrl = `http://134.215.109.213:44363/view?filename=${filename}`;
+        console.log('fetchHistoryAndDisplayFilename GOT BACKEND URL:', imageUrl);
         checkImageAvailability(imageUrl); // Check if the image is available before showing it
       } else {
         setIsImageProcessing(false); // Update loading state
         alert('No output filename found.');
       }
+      
     } catch (error) {
       console.error('Error fetching history:', error);
       setIsImageProcessing(false); // Update loading state
@@ -352,9 +410,6 @@ function UploadComponent() {
   };
   
 // - END NEW
-  
-
-
 
   const downloadJson = () => {
     // const jsonToDownload = { fileUrl, presignedUrl }; // Adjust this object as needed for your requirements
@@ -412,7 +467,8 @@ function UploadComponent() {
       <p>{uploadStatus}</p>
 
       {/* Output image if available */}
-      {imageUrl && <img src={imageUrl} alt="Processed" />}
+
+      {cachedResultPresignedImageUrl && <img src={cachedResultPresignedImageUrl} alt="Processed" />}
     </div>
   );
 }
@@ -420,3 +476,6 @@ function UploadComponent() {
 export default UploadComponent;
 
 //           <button onClick={downloadJson}>Download JSON</button>
+// {s3ImageUrl && <img src={s3ImageUrl} alt="Image from S3" />}
+
+//       {imageUrl && <img src={imageUrl} alt="Processed" />}
