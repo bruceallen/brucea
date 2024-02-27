@@ -1,5 +1,5 @@
-// BRUCE SERVER.JS - 2024.02.25 - works to send to ComfyUI YAAY
-// now gonna work on... A PROGRESS BAR
+// BRUCE SERVER.JS - 2024.02.26 - Now with Marigold Depth Estimation and seconds elapsed and JPEG filtering
+// TODO: handle .HEIF files
 
 require('dotenv').config();
 const express = require('express');
@@ -14,6 +14,8 @@ const cors = require('cors');
 const fetch = require('node-fetch'); // Make sure you have 'node-fetch' installed
 const sharp = require('sharp');
 const { stringify } = require('querystring');
+
+//const imageType = require('image-type');
 
 const app = express();
 
@@ -73,8 +75,18 @@ app.post('/upload', upload.single('file'), async (req, res) => {
             message: 'No file uploaded.',
         });
     }
-
+    
     const fileStream = fs.createReadStream(req.file.path);
+
+    /*
+    const type = imageType(fileStream);
+    if (type && type.mime === 'image/jpeg') {
+        // Proceed with your logic for JPEG files
+    } else {
+        // Handle non-JPEG files
+        res.status(400).send('Unsupported file type. Please upload a JPEG image.');
+    }
+    */
 
     const metadata = await sharp(req.file.path).metadata();
     const width = metadata.width;
@@ -146,7 +158,7 @@ app.get('/generate-presigned-url', async (req, res) => {
 app.post('/proxy-prompt', async (req, res) => {
     const externalApiUrl = 'http://134.215.109.213:44363/prompt';
 
-    console.log(`SENT: ${stringify(req.body)}`);
+    console.log(`SENT: ${stringify(req)}`);
 
     
     try {

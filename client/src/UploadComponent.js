@@ -104,6 +104,7 @@ function UploadComponent() {
         setOriginalHeight(result.resolutionY);
 
         fetchPresignedUrl(result.fileUrl.split('/').pop());
+        
       } else {
         setUploadStatus('Upload failed: ' + result.message);
         setIsLoadingUpload(false);
@@ -371,16 +372,16 @@ function UploadComponent() {
     <div className="smallText">
       <p>File URL: {fileUrl}</p>
       <p>Project Resolution: {resX}x{resY}</p>
-      <input type="file" onChange={handleFileChange} disabled={isLoadingUpload || isImageProcessing} />
+
+      <input type="file" accept="image/jpeg" onChange={handleFileChange} disabled={isLoadingUpload || isImageProcessing} />
       {uploadStatus && <p>{uploadStatus}</p>}
   
       {presignedUrl && (
         <>
-          <button onClick={downloadJson}>Download JSON</button>
-          <button onClick={sendDataToComfy} disabled={isLoadingUpload || isImageProcessing}>Send to Comfy</button>
+          <button onClick={sendDataToComfy} disabled={isLoadingUpload || isImageProcessing}>PROCESS IMAGE</button>
           {comfyResponse && (
             <div>
-              <h3>Response from Comfy:</h3>
+              <h3>Response:</h3>
               <p>Prompt ID: {comfyResponse.prompt_id}</p>
               <p>Number: {comfyResponse.number}</p>
               {/* Render other data as needed */}
@@ -402,7 +403,7 @@ function UploadComponent() {
       {isImageProcessing && (
         <div>
           <CircularProgress /> {/* Show a spinner during Comfy processing */}
-          <p>Processing image with Comfy...</p>
+          <p>Processing image...</p>
           <p>Seconds Elapsed: {secondsElapsed}</p>
         </div>
       )}
@@ -417,3 +418,5 @@ function UploadComponent() {
 }
 
 export default UploadComponent;
+
+//           <button onClick={downloadJson}>Download JSON</button>
