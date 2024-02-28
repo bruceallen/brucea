@@ -12,7 +12,8 @@ function UploadComponent() {
   const [fileUrl, setFileUrl] = useState(''); 
   // const [fileName, setFileName] = useState(''); unused
   const [uploadStatus, setUploadStatus] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
+  const [processStatus, setProcessStatus] = useState('');
+  const [ProcessedUploadStatus, setProcessedUploadStatus] = useState('');
   const [cachedResultImageUrl, setCachedResultImageUrl] = useState('');
   const [cachedResultPresignedImageUrl, setCachedResultPresignedImageUrl] = useState('');
   const [presignedUrl, setPresignedUrl] = useState('');
@@ -24,13 +25,9 @@ function UploadComponent() {
 
   const [originalWidth, setOriginalWidth] = useState(0);
   const [originalHeight, setOriginalHeight] = useState(0);
-  const [bestWidth, setBestWidth] = useState(0);
-  const [bestHeight, setBestHeight] = useState(0);
 
   const [resX, setResX] = useState(1024);
   const [resY, setResY] = useState(1024);
-
-  const [s3ImageUrl, setS3ImageUrl] = useState('');
 
   useEffect(() => {
     console.log('Updated resolution:', resX, 'x', resY);
@@ -122,7 +119,8 @@ function UploadComponent() {
             // If the image has been successfully uploaded to S3, set the S3 image URL state
             setCachedResultImageUrl(s3Data.imageUrl); // Update to use the S3 image URL
             setIsImageProcessing(false); // End loading state
-            setUploadStatus('Image processing complete and uploaded to S3.');
+            // const processResult = 'Image processing complete and result uploaded to S3. Sec elapsed: '
+            setProcessedUploadStatus('Image processing complete and result uploaded to S3.');
 
  
             fetchCachedResultPresignedImageUrl(s3Data.imageUrl.split('/').pop());
@@ -131,7 +129,7 @@ function UploadComponent() {
         } else {
             console.error('Failed to upload image to S3', s3Data.message);
             setIsImageProcessing(false); // End loading state
-            setUploadStatus('Failed to upload image to S3.');
+            setProcessedUploadStatus('Failed to upload image to S3.');
         }
         // -------- END S3
         // setImageUrl(imageUrl); // Image is available, set image URL state
@@ -140,13 +138,13 @@ function UploadComponent() {
       } else {
         // Retry or handle image not available yet
         setIsImageProcessing(true); // Optionally keep loading state if retrying
-        setUploadStatus('Waiting for image...');
+        setProcessedUploadStatus('Waiting for image...');
         // Optionally implement a retry mechanism here
       }
     } catch (error) {
       console.error('Error checking image availability:', error);
       setIsImageProcessing(false); // End loading state
-      setUploadStatus('Failed to check image availability.');
+      setProcessedUploadStatus('Failed to check image availability.');
     }
   };
 
@@ -272,9 +270,12 @@ function UploadComponent() {
         const response = await fetch(`/proxy-history/${promptId}`);
         const data = await response.json();
         if (response.ok && Object.keys(data).length !== 0) { // Check if data is not an empty object
-            console.log('Processing complete:', data);
-            console.log('Processing seconds elapsed:', attempts);
-            setUploadStatus('Comfy processing complete.');
+        //    console.log('Processing complete:', data);
+        //    console.log('Processing seconds elapsed:', attempts);
+
+            const procesStatusLine = 'Processing Complete. Elapsed: ' + attempts + ' seconds.';
+            console.log(procesStatusLine);
+            setProcessStatus(procesStatusLine);
   
             setIsImageProcessing(false);
             // Update your UI based on `data` here
@@ -292,7 +293,7 @@ function UploadComponent() {
         if (attempts < maxAttempts) {
             setTimeout(() => pollForComfyProcessing(promptId, attempts + 1), interval);
         } else {
-            setUploadStatus('Failed to check Comfy processing status.');
+            setProcessStatus('Failed to check Comfy processing status.');
             setIsImageProcessing(false);
         }
     }
@@ -300,6 +301,7 @@ function UploadComponent() {
   
 // - END NEW
 
+/*
   const downloadJson = () => {
     // const jsonToDownload = { fileUrl, presignedUrl }; // Adjust this object as needed for your requirements
     const jsonToDownload = createJsonToComfy(presignedUrl);
@@ -311,6 +313,7 @@ function UploadComponent() {
     downloadAnchorNode.click();
     downloadAnchorNode.remove();
   };
+*/
 
   return (
     <div className="smallText">
@@ -352,9 +355,9 @@ function UploadComponent() {
         </div>
       )}
 
-      {/* Display upload status */}
-      <p>{uploadStatus}</p>
-
+      {/* Display process status */}
+      <p>{processStatus}</p>
+      <p>{ProcessedUploadStatus}</p>
       {/* Output image if available */}
 
       {cachedResultPresignedImageUrl && <img src={cachedResultPresignedImageUrl} alt="Processed" />}
@@ -363,8 +366,3 @@ function UploadComponent() {
 }
 
 export default UploadComponent;
-
-//           <button onClick={downloadJson}>Download JSON</button>
-// {s3ImageUrl && <img src={s3ImageUrl} alt="Image from S3" />}
-
-//       {imageUrl && <img src={imageUrl} alt="Processed" />}
