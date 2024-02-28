@@ -39,7 +39,7 @@ function App() {
           BRUCE TEST 2024.02.27A
         </p>
         <p className="mediumText">
-          currently serving you depth maps on a remote RTX 4090
+          currently making you animated GIFs from your images on a remote RTX 4090
         </p>
         <UploadComponent />
       </header>

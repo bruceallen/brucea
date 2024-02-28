@@ -1,5 +1,4 @@
-// BRUCE SERVER.JS - 2024.02.26 - Now with Marigold Depth Estimation and seconds elapsed and JPEG filtering
-// TODO: handle .HEIF files
+// BRUCE SERVER.JS - 2024.02.27 - need to fix hardcoded server urls
 
 require('dotenv').config();
 const express = require('express');
@@ -11,20 +10,10 @@ const { GetObjectCommand } = require("@aws-sdk/client-s3");
 const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
-const fetch = require('node-fetch'); // Make sure you have 'node-fetch' installed
+const fetch = require('node-fetch');
 const sharp = require('sharp');
 const { stringify } = require('querystring');
-
 const { Upload } = require('@aws-sdk/lib-storage');
-
-// Additional required module for image downloading
-// const { default: axios } = require('axios');
-// const stream = require('stream');
-// const { promisify } = require('util');
-// This utility function helps to stream the image data
-// const pipeline = promisify(stream.pipeline);
-//const imageType = require('image-type');
-
 const app = express();
 
 // Initialize S3 Client for AWS SDK v3
@@ -132,60 +121,37 @@ app.get('/generate-presigned-url', async (req, res) => {
     }
 });
 
-// Proxy endpoint
+// Proxy endpoint for sending prompts to an external service
 app.post('/proxy-prompt', async (req, res) => {
-    const externalApiUrl = 'http://134.215.109.213:44363/prompt';
+    const { externalApiUrl, prompt } = req.body; // Extracting externalApiUrl and prompt from the request body
 
-    console.log(`SENT: ${stringify(req)}`);
+    if (!externalApiUrl || !prompt) {
+        return res.status(400).json({ message: 'External API URL and prompt are required.' });
+    }
 
-    
     try {
-      // Forward the request to the external API
-      const response = await axios.post(externalApiUrl, req.body, {
-        headers: {
-          'Content-Type': 'application/json',
-          // Include other necessary headers here
-        },
-      });
-  
-      // Send the response from the external API back to the client
-      res.json(response.data);
+        const response = await axios.post(externalApiUrl, prompt, {
+            headers: { 'Content-Type': 'application/json' },
+        });
+        res.json(response.data);
     } catch (error) {
-      // Handle errors from the external API
-      if (error.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
-        console.log(error.response.data);
-        console.log(error.response.status);
-        console.log(error.response.headers);
-        res.status(error.response.status).json(error.response.data);
-      } else if (error.request) {
-        // The request was made but no response was received
-        console.log(error.request);
-        res.status(500).json({ message: 'No response received from external API' });
-      } else {
-        // Something happened in setting up the request that triggered an Error
-        console.log('Error', error.message);
-        res.status(500).json({ message: error.message });
-      }
+        console.error('Error forwarding request:', error);
+        res.status(500).json({ message: 'Error forwarding request to external API.' });
     }
 });
 
-app.get('/proxy-history/:uid', async (req, res) => {
-    const uid = req.params.uid;
-    const historyUrl = `http://134.215.109.213:44363/history/${uid}`;
-  //  console.log(`Fetching history for UID: ${uid}`);
-  //  console.log(`Constructed history URL: ${historyUrl}`);
+// Proxy endpoint for fetching history from an external service
+app.post('/proxy-history', async (req, res) => {
+    const { baseUrl, uid } = req.body; // Extracting baseUrl and uid from the request body
+
+    if (!baseUrl || !uid) {
+        return res.status(400).json({ message: 'Base URL and UID are required.' });
+    }
+
+    const historyUrl = `${baseUrl}${uid}`;
 
     try {
         const response = await axios.get(historyUrl);
-   //     console.log('History response:', response.data);
-
-        // Process the response to extract the necessary information
-        // For example, extract the output filename
-    //    const outputFilename = extractFilename(response.data); // Implement this based on the actual response structure
-
-        // Send the relevant data back to the client
         res.json(response.data);
     } catch (error) {
         console.error('Error fetching history:', error);
@@ -241,7 +207,6 @@ app.post('/post-image', async (req, res) => {
                 Key: filename,
                 Body: response.data,
                 ContentType: response.headers['content-type'],
-   //             ACL: 'public-read', // Ensure the file is publicly readable
             },
         });
 
@@ -264,61 +229,72 @@ app.post('/post-image', async (req, res) => {
     }
 });
 
-/*
-app.post('/post-image', async (req, res) => {
-    const { imageUrl } = req.body; // Expecting { imageUrl: 'http://example.com/image.jpg' }
-    
-    if (!imageUrl) {
-        return res.status(400).json({ success: false, message: 'Image URL is required.' });
-    }
-
-    try {
-        // Stream the image from the external URL
-        const response = await axios({
-            method: 'get',
-            url: imageUrl,
-            responseType: 'stream',
-        });
-
-        // Generate a unique filename for the S3 bucket based on the current timestamp and potential file extension
-        const filename = `image-${Date.now()}${path.extname(imageUrl) || '.jpg'}`;
-        const s3Params = {
-            Bucket: process.env.BUCKETEER_BUCKET_NAME,
-            Key: filename,
-            Body: response.data,
-            ContentType: response.headers['content-type'],
-            ACL: 'public-read', // Ensure the file is publicly readable
-        };
-
-        // Upload the image stream to S3
-        await s3Client.send(new PutObjectCommand(s3Params));
-
-        // Construct the URL of the uploaded image
-        const uploadedImageUrl = `https://${process.env.BUCKETEER_BUCKET_NAME}.s3.${process.env.BUCKETEER_AWS_REGION}.amazonaws.com/${filename}`;
-
-        // Respond with the URL of the uploaded image
-        res.json({
-            success: true,
-            message: 'Image uploaded successfully',
-            imageUrl: uploadedImageUrl,
-        });
-    } catch (error) {
-        console.error('Error posting image:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to post image.',
-        });
-    }
-});
-*/
-
 // This should be the last route
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'client/build/index.html'));
 });
 
-
 const port = process.env.PORT || 5000;
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
 });
+
+
+// ---- OLD ----
+
+/*
+
+// Proxy endpoint
+app.post('/proxy-prompt', async (req, res) => {
+    const externalApiUrl = 'http://134.215.109.213:44363/prompt';
+
+//  console.log(`SENT: ${stringify(req)}`); 
+    try {
+      // Forward the request to the external API
+      const response = await axios.post(externalApiUrl, req.body, {
+        headers: {
+          'Content-Type': 'application/json',
+          // Include other necessary headers here
+        },
+      });
+  
+      // Send the response from the external API back to the client
+      res.json(response.data);
+    } catch (error) {
+      // Handle errors from the external API
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        console.log(error.response.data);
+        console.log(error.response.status);
+        console.log(error.response.headers);
+        res.status(error.response.status).json(error.response.data);
+      } else if (error.request) {
+        // The request was made but no response was received
+        console.log(error.request);
+        res.status(500).json({ message: 'No response received from external API' });
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        console.log('Error', error.message);
+        res.status(500).json({ message: error.message });
+      }
+    }
+});
+
+*/
+
+
+/*
+app.get('/proxy-history/:uid', async (req, res) => {
+    const uid = req.params.uid;
+    const historyUrl = `http://134.215.109.213:44363/history/${uid}`;
+  //  console.log(`Constructed history URL: ${historyUrl}`);
+    try {
+        const response = await axios.get(historyUrl);
+        // Send the relevant data back to the client
+        res.json(response.data);
+    } catch (error) {
+        console.error('Error fetching history:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch history.' });
+    }
+});*/
