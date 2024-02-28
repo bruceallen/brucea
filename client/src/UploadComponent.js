@@ -8,8 +8,9 @@ import { createJsonToComfy, calculateBestProjectResolution } from './BrucePrepWo
 
 function UploadComponent() {
 
-  const serverUrl = 'http://134.215.109.213:44363'
-
+  // const serverUrl = 'http://134.215.109.213:44363'
+  const serverUrl = 'http://24.52.17.82:40501'
+  //
   // const serverUrls = [process.env.REACT_APP_SERVER_URL_1, process.env.REACT_APP_SERVER_URL_2]; // Array of server URLs
 
 
@@ -224,14 +225,26 @@ function UploadComponent() {
     }
 
     try {
-      const response = await fetch(`/proxy-history/${promptId}`);
+      const logcheck = 'CHECKING' + serverUrl + `/proxy-history/${promptId}`;
+      console.log (logcheck);
+
+      //const response = await axios.get(`/proxy-history/${promptId}`);
+
+      const response = await fetch(`/proxy-history`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ baseUrl: serverUrl, uid: promptId }), // Send the server URL and UID as JSON
+      });
+
       const data = await response.json();
       if (response.ok && Object.keys(data).length !== 0) { // Check if data is not an empty object
       //    console.log('Processing complete:', data);
       //    console.log('Processing seconds elapsed:', attempts);
-        const procesStatusLine = 'Processing Complete. Elapsed: ' + attempts + ' seconds.';
-        console.log(procesStatusLine);
-        setProcessStatus(procesStatusLine);
+        const processStatusLine = 'Processing Complete. Elapsed: ' + attempts + ' seconds.';
+        console.log(processStatusLine);
+        setProcessStatus(processStatusLine);
 
         setIsImageProcessing(false);
         // Update your UI based on `data` here
@@ -273,10 +286,10 @@ function UploadComponent() {
  
 
     try {
+      console.log("sending JSON to:", serverUrl);
       const response = await axios.post('/proxy-prompt', {
-        console.log("sending JSON to:", serverUrl);
         externalApiUrl: serverUrl + '/prompt', // Use serverUrl here
-        prompt: promptData, // Assuming this is your prompt data
+        prompt: jsonToComfy, // Assuming this is your prompt data
       }, {
         headers: { 'Content-Type': 'application/json' }
       });

@@ -148,13 +148,21 @@ app.post('/proxy-history', async (req, res) => {
         return res.status(400).json({ message: 'Base URL and UID are required.' });
     }
 
-    const historyUrl = `${baseUrl}${uid}`;
+    // If baseUrl does not end with a slash, one is added. If uid starts with a slash, it is removed (since we're already ensuring the slash from the base URL part).
+//    const historyUrl = `${baseUrl.endsWith('/') ? baseUrl : baseUrl + '/'}${uid.startsWith('/') ? uid.substring(1) : uid}`;
+
+    const historyUrl = baseUrl + '/history/' + `${uid}`;
+
+    console.log('PROXY GETTING HISTORY FOR UID');
+    console.log(historyUrl);
+
+//    const historyUrl = `${baseUrl}${uid}`;
 
     try {
         const response = await axios.get(historyUrl);
         res.json(response.data);
     } catch (error) {
-        console.error('Error fetching history:', error);
+//        console.error('Error fetching history:', error);
         res.status(500).json({ success: false, message: 'Failed to fetch history.' });
     }
 });
