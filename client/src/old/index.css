@@ -1,0 +1,28 @@
+/* Reducing line spacing for all paragraphs */
+p {
+  line-height: 1.2; /* Adjust this value as needed; 1.2 is typically a good starting point */
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+.smallText {
+  font-size: 14px;
+}
+.mediumText {
+  font-size: 16px;
+}
+.largeText {
+  font-size: 18px;
+}
